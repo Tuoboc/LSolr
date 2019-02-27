@@ -141,7 +141,6 @@ String Msg = Solr.Query<goods>().Where(a => a.goodcode=="123").OutpuntTimeLine()
 ```
 只需将ToList()方法换成OutpuntTimeLine(),就可以返回各个阶段所耗时间。
 ## 其他说明
-----
 * 因为时区的原因，会出现solr中的时间比数据库中时间少8小时的情况，如果在导入数据时没有处理，那么在查询时
 需要将时间减去8小时。或者参数中timezone设为"true"，这样就会自动将时间减去8小时。
 * 如果出现无法读取配置的情况，请在VS中将配置文件的属性中《复制到输出目录》设置为《始终复制》
