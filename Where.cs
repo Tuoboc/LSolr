@@ -298,13 +298,13 @@ namespace LSolr
 
             switch (func.Method.Name)
             {
-                case "Like":
+                case "SolrLike":
                     return CreateLikeMethodWhereString(func);
-                case "NotLike":
+                case "SolrNotLike":
                     return CreateNotLikeMethodWhereString(func);
-                case "In":
+                case "SolrIn":
                     return CreateInMethodWhereString(func);
-                case "NotIn":
+                case "SolrNotIn":
                     return CreateNotInMethodWhereString(func);
             }
             return "";

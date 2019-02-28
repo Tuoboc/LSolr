@@ -1,8 +1,6 @@
 # LSolr
-----
 LSolr是一个.NET平台的Solr客户端
 ## 特性
-----
 * 配置简单，使用方便
 * 没有引用第三方类库，全部由.Net Standard标准中的API写成，兼容性较好
 * 代码精简，执行效率较高
@@ -18,10 +16,7 @@ Xamarin.Mac|3.8
 Xamarin.Android|8.0
 通用 Windows 平台|10.0.16299
 
-
-
 ## 安装设置
-----
 1. 将Lsolr项目添加到解决方案中，或者直接引用dll文件。VS2013直接引用项目会报错，所以需要自己建个类库，然后把所有文件复制到类库中。
 2. 在配置文件appsettings.json、Web.config、App.config文件中增加配置项，配置如下
 
@@ -53,8 +48,7 @@ timezone|非必需|时间是否减去8小时|"true"或者"false",默认"false"
 </configuration>
 ```
 ## 使用方法
-----
-首先要建立Solr在代码中对应的类,其中class上面的SolrCore这个attribute是必须的，它指定了这个类对应到Solr中的哪个Core。
+首先要建立Solr在代码中对应的类,其中class上面的SolrCore这个attribute指定了这个类对应到Solr中的哪个Core,如果和Solr种Core的名字相同则可以省略。
 property上面的SolrField不是必须的，如果Solr中field的name和class中property一样的话(区分大小写),那么可以省略这个SolrField
 
 ```c#
@@ -95,7 +89,7 @@ goods list=Solr.Query<goods>().ToModelAsync();//异步返回第一条数据
 Solr.Query<goods>().Select(a => new { a.goodcode, a.price }).ToList();
 ```
 如果字段较多，并且只想获取其中的几个字段，可以使用Select方法来限定查询的字段，来减少网络传输的消耗。
-如果查询所有字段可以省略Select方法，或者使用.Select(a =>a.All())。
+如果查询所有字段可以省略Select方法。
 ### 查询条件
 ```c#
 Solr.Query<goods>().Where(a => a.goodcode=="123"&&a.price>10).ToList();
@@ -113,10 +107,10 @@ Solr.Query<goods>().Where(a => a.price>10).ToList();//大于
 Solr.Query<goods>().Where(a => a.price>=10).ToList();//大于等于
 Solr.Query<goods>().Where(a => a.price<10).ToList();//小于
 Solr.Query<goods>().Where(a => a.price<=10).ToList();//小于等于
-Solr.Query<goods>().Where(a => a.goodcode.Like("123","all")).ToList();//Like查询,第二个参数为all,left,right,对应哪侧模糊查询
-Solr.Query<goods>().Where(a => a.goodcode.NotLike("123","all")).ToList();//NotLike查询,第二个参数为all,left,right,对应哪侧模糊查询
-Solr.Query<goods>().Where(a => a.goodcode.In("1,2,3").ToList();//In查询,多个值用逗号分隔
-Solr.Query<goods>().Where(a => a.goodcode.NotIn("1,2,3").ToList();//NotIn查询,多个值用逗号分隔
+Solr.Query<goods>().Where(a => a.goodcode.SolrLike("123","all")).ToList();//Like查询,第二个参数为all,left,right,对应哪侧模糊查询
+Solr.Query<goods>().Where(a => a.goodcode.SolrNotLike("123","all")).ToList();//NotLike查询,第二个参数为all,left,right,对应哪侧模糊查询
+Solr.Query<goods>().Where(a => a.goodcode.SolrIn("1,2,3").ToList();//In查询,多个值用逗号分隔
+Solr.Query<goods>().Where(a => a.goodcode.SolrNotIn("1,2,3").ToList();//NotIn查询,多个值用逗号分隔
 ```
 ### 分页
 分页有两种方式，一种是直接设置Solr中的start和rows参数
@@ -147,7 +141,7 @@ String Msg = Solr.Query<goods>().Where(a => a.goodcode=="123").OutpuntTimeLine()
 * 现在只支持查询语句，后续将增加增删改以及group by，sum等聚合函数
 * 现在还没有完善的异常体系，后续会增加
 * Where方法中只能查询的字段在左边，条件的值在右边
-* Where方法中只能识别Like,NotLike,In,NotIn方法，如下使用方式会出错
+* Where方法中只能识别SolrLike,SolrNotLike,SolrIn,SolrNotIn方法，如下使用方式会出错
 ```c#
 Solr.Query<goods>().Where(a =>  a.createtime > DateTime.Now.AddDays(1)).ToList();
 ```

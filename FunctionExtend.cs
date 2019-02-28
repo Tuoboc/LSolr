@@ -6,23 +6,19 @@ namespace LSolr
 {
     public static class FunctionExtend
     {
-        public static T All<T>(this T obj)
-        {
-            return obj;
-        }
-        public static bool Like(this object obj, string str, string match = "all")
+        public static bool SolrLike(this object obj, string str, string match = "all")
         {
             return true;
         }
-        public static bool NotLike(this object obj, string str, string match = "all")
+        public static bool SolrNotLike(this object obj, string str, string match = "all")
         {
             return true;
         }
-        public static bool In(this object obj, string ValueList)
+        public static bool SolrIn(this object obj, string ValueList)
         {
             return true;
         }
-        public static bool NotIn(this object obj, string ValueList)
+        public static bool SolrNotIn(this object obj, string ValueList)
         {
             return true;
         }

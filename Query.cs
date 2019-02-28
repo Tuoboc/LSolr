@@ -64,7 +64,7 @@ namespace LSolr
                     }
                 }
                 if (string.IsNullOrEmpty(CoreName))
-                    CoreName = type.ToString();
+                    CoreName = type.Name.ToString();
             }
             catch (Exception ex)
             {
