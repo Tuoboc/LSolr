@@ -6,34 +6,15 @@ using System.Threading.Tasks;
 
 namespace LSolr.Model
 {
-   public class FacetSolr<T> where T:Bucket
+    public class FacetSolr<T>
     {
-       public ResponseHeader responseHeader { get; set; }
-
-       public Response response { get; set; }
-
-       public Fecets<T> facets { get; set; }
+        public List<FacetData<T>> data { get; set; }
+        public int numFound { get; set; }
     }
 
-   public class BasicFacetSolr<T> where T : BasicFacet
-   {
-       public ResponseHeader responseHeader { get; set; }
-
-       public Response response { get; set; }
-
-       public T facets { get; set; }
-   }
-
-   public class Fecets<T> where T:Bucket {
-     
-       public int count { get; set; }
-       public Facet<T> fz { get; set; } 
-   }
-
-
-   public class Facet<T> where T:Bucket
+    public class FacetData<T>
     {
-        public List<T> buckets { get; set; } 
+        public T entity { get; set; }
+        public int num { get; set; }
     }
-
 }

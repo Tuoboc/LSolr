@@ -1,6 +1,7 @@
 ﻿using LSolr.Model;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -17,6 +18,7 @@ namespace LSolr
         public string SelectStr = "";//查询字段字符串
         public string OrderStr = "";//排序条件
         private string UserPara = "";//用户传的自定义参数
+        private string GroupStr = "";
         public int DataStart = 0;//solr中的start参数
         public int DataRows = 10;//solr中的rows参数
         public List<FieldMap> fieldMaps;
@@ -148,6 +150,18 @@ namespace LSolr
             return this;
         }
 
+        public FacetSolr<T> GroupBy(Expression<Func<T, object>> exp)
+        {
+            DateTime start = DateTime.Now;
+            Group<T> group = new Group<T>(exp, fieldMaps);
+            GroupStr = group.GroupStr;
+            DateTime end = DateTime.Now;
+            TimeLineMsg += "GroupBy方法执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
+            string httpurl = "/select?&facet=on&indent=on&q=*:*&rows=0&wt=xml" + WhereStr + GroupStr + UserPara;
+            string html = CreateSolrHttp(httpurl);
+            return HtmlToFacetSolrModel(html);
+        }
+
         public string OutpuntTimeLine()
         {
             var result = tolist();
@@ -274,6 +288,17 @@ namespace LSolr
         #region 私有函数
         private DocSolr<T> tolist()
         {
+            string queryUrl = "/select?indent=on&q=*:*&wt=xml" + "&start=" + DataStart + "&rows=" + DataRows + SelectStr + WhereStr + OrderStr + UserPara;
+            string html = CreateSolrHttp(queryUrl);
+            return HtmlToDocSolrModel(html);
+        }
+
+        /// <summary>
+        /// 进行网络请求
+        /// </summary>
+        /// <returns></returns>
+        private string CreateSolrHttp(string paras)
+        {
             string url = string.IsNullOrEmpty(solrhttp) ? Helper.setting.solrhttp : solrhttp;
             if (string.IsNullOrEmpty(url))
                 throw new Exception("配置文件中没有找到solrhttp配置");
@@ -286,14 +311,16 @@ namespace LSolr
                 string value = Convert.ToBase64String(bytes);
                 HeadPara.Add("Authorization", "Basic " + value);
             }
-            string queryUrl = url + CoreName + "/select?indent=on&q=*:*&wt=xml" + "&start=" + DataStart + "&rows=" + DataRows + SelectStr + WhereStr + OrderStr + UserPara;
+            string queryUrl = url + CoreName + paras;
+
 
             DateTime start = DateTime.Now;
             string html = Helper.sendPost(queryUrl, null, HeadPara, "get");
             DateTime end = DateTime.Now;
             TimeLineMsg += "网络请求执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
-            return HtmlToSolrModel(html);
+            return html;
         }
+
 
         private async Task<DocSolr<T>> tolistAsync()
         {
@@ -315,10 +342,10 @@ namespace LSolr
             string html = await Helper.sendPostAsync(queryUrl, null, HeadPara, "get");
             DateTime end = DateTime.Now;
             TimeLineMsg += "网络请求执行时间+" + Math.Round((end - start).TotalSeconds, 3) + "秒.";
-            return HtmlToSolrModel(html);
+            return HtmlToDocSolrModel(html);
         }
 
-        private DocSolr<T> HtmlToSolrModel(string html)
+        private DocSolr<T> HtmlToDocSolrModel(string html)
         {
             DateTime start = DateTime.Now;
             DocSolr<T> result = new DocSolr<T>();
@@ -382,6 +409,106 @@ namespace LSolr
             TimeLineMsg += "转换成对象执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
 
             return result;
+        }
+
+        private FacetSolr<T> HtmlToFacetSolrModel(string html)
+        {
+            DateTime start = DateTime.Now;
+            FacetSolr<T> result = new FacetSolr<T>();
+            result.data = new List<FacetData<T>>();
+            XDocument doc = XDocument.Parse(html);
+            result.numFound = Convert.ToInt32(doc.Element("response").Element("result").Attribute("numFound").Value);
+
+
+            IEnumerable<XElement> facet_counts = from lst in doc.Element("response").Elements("lst")
+                                                 where lst.Attribute("name").Value == "facet_counts"
+                                                 select lst;
+            IEnumerable<XElement> facet_pivot = from lst in facet_counts.FirstOrDefault().Elements("lst")
+                                                where lst.Attribute("name").Value == "facet_pivot"
+                                                select lst;
+
+            IEnumerable<XElement> groupData = facet_pivot;
+
+            while (groupData.Elements("arr").Count() > 0)
+                groupData = groupData.Elements("arr").Elements("lst");
+
+            foreach (var item in groupData)
+            {
+                result.data.Add(CreateEntitys(item, null));
+            }
+
+            DateTime end = DateTime.Now;
+            TimeLineMsg += "转换成对象执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
+            return result;
+        }
+
+        private FacetData<T> CreateEntitys(XElement ele, FacetData<T> facetdata)
+        {
+            if (facetdata == null)
+                facetdata = new FacetData<T>();
+            if (facetdata.num == 0)
+            {
+                IEnumerable<XElement> countEle = from value in ele.Elements()
+                                                 where value.Attribute("name").Value == "count"
+                                                 select value;
+                facetdata.num = Convert.ToInt32(countEle.FirstOrDefault().Value);
+            }
+            string field_name = ele.Element("str").Value.ToString();
+            IEnumerable<XElement> valueEle = from value in ele.Elements()
+                                             where value.Attribute("name").Value == "value"
+                                             select value;
+            string field_value = valueEle.FirstOrDefault().Value.ToString();
+            facetdata.entity = EntitySetValue(facetdata.entity, field_name, field_value);
+
+            if (ele.Parent.Parent.Element("str") != null && ele.Parent.Parent.Element("str").Attribute("name").Value == "field")
+            {
+                CreateEntitys(ele.Parent.Parent, facetdata);
+            }
+            return facetdata;
+        }
+
+        /// <summary>
+        /// 给泛型对象赋值
+        /// </summary>
+        /// <param name="entity">如果为null则new一个新对象</param>
+        /// <param name="fieldname">字段名</param>
+        /// <param name="value">值</param>
+        /// <returns></returns>
+        private T EntitySetValue(T entity, string fieldname, string value)
+        {
+            Type type = typeof(T);
+            object o = entity == null ? Activator.CreateInstance(type) : entity;
+            var infos = type.GetProperties();
+            var field = fieldMaps.Find(a => a.SolrField == fieldname || a.EntityField == fieldname);
+            foreach (var info in infos.Where(a => a.Name == field.EntityField).ToList())
+            {
+                switch (field.EntityType)
+                {
+                    case "String":
+                        info.SetValue(o, value);
+                        break;
+                    case "Double":
+                        info.SetValue(o, Convert.ToDouble(value));
+                        break;
+                    case "Float":
+                        info.SetValue(o, float.Parse(value));
+                        break;
+                    case "Decimal":
+                        info.SetValue(o, Convert.ToDecimal(value));
+                        break;
+                    case "Int64":
+                        info.SetValue(o, Convert.ToInt64(value));
+                        break;
+                    case "Int32":
+                        info.SetValue(o, Convert.ToInt32(value));
+                        break;
+                    case "DateTime":
+                        info.SetValue(o, Convert.ToDateTime(value));
+                        break;
+                }
+
+            }
+            return (T)o;
         }
 
         private List<FieldMap> GetFieldMap()

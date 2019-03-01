@@ -32,16 +32,4 @@ namespace LSolr.Model
 
         public string wt { get; set; }
     }
-
-    public class Bucket
-    {
-        public string val { get; set; }
-
-        public int count { get; set; }
-    }
-
-    public class BasicFacet
-    {
-        public int count { get; set; }
-    }
 }
