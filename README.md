@@ -48,7 +48,7 @@ timezone|非必需|时间是否减去8小时|"true"或者"false",默认"false"
 </configuration>
 ```
 ## 使用方法
-首先要建立Solr在代码中对应的类,其中class上面的SolrCore这个attribute指定了这个类对应到Solr中的哪个Core,如果和Solr种Core的名字相同则可以省略。
+首先要建立Solr在代码中对应的类,其中class上面的SolrCore指定了这个类对应到Solr中的哪个Core,如果和Solr中Core的名字相同则可以省略。
 property上面的SolrField不是必须的，如果Solr中field的name和class中property一样的话(区分大小写),那么可以省略这个SolrField
 
 ```c#
@@ -145,7 +145,7 @@ foreach (FacetData<goods> item in facetSolr.data)
 }
 ```
 Solr中group函数不能多字段分组，facet函数返回的结构为树形结构，所以为了接近SQL中的Group By，
-GroupBy方法使用的时facet,并且将树形结构转化为和SQL结果一样的Table结构。
+GroupBy方法使用的是facet,并且将树形结构转化为和SQL结果一样的Table结构。
 默认请求solr时facet.missing参数设为on，表示将null值也进行分组，也是为了保持和SQL一致。
 ## 其他功能
 ### 查看代码执行的各阶段耗时
