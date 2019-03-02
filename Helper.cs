@@ -23,7 +23,7 @@ namespace LSolr
         /// <param name="RequestHead">请求头参数</param>
         /// <param name="method">请求方法</param>
         /// <returns>响应内容</returns>
-        public static string sendPost(string url, IDictionary<string, string> parameters, IDictionary<string, string> RequestHead, string method, int timeout = 5000)
+        public static string sendPost(string url, IDictionary<string, string> parameters, IDictionary<string, string> RequestHead, string method, int timeout = 5000, string WhereString = "")
         {
             if (method.ToLower() == "post")
             {
@@ -38,7 +38,8 @@ namespace LSolr
                     req.ProtocolVersion = HttpVersion.Version10;
                     req.Timeout = timeout;
                     req.ContentType = "application/x-www-form-urlencoded;charset=utf-8";
-                    byte[] postData = Encoding.UTF8.GetBytes(BuildQuery(parameters, "utf8"));
+                    string para = WhereString != "" ? WhereString + BuildQuery(parameters, "utf8") : BuildQuery(parameters, "utf8");
+                    byte[] postData = Encoding.UTF8.GetBytes(para);
                     foreach (var item in RequestHead)
                     {
                         req.Headers.Add(item.Key, item.Value);
@@ -51,7 +52,7 @@ namespace LSolr
                 }
                 catch (Exception ex)
                 {
-                    return ex.Message;
+                    throw ex;
                 }
                 finally
                 {

@@ -157,7 +157,7 @@ namespace LSolr
             GroupStr = group.GroupStr;
             DateTime end = DateTime.Now;
             TimeLineMsg += "GroupBy方法执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
-            string httpurl = "/select?&facet=on&indent=on&q=*:*&rows=0&wt=xml" + WhereStr + GroupStr + UserPara;
+            string httpurl = "/select?indent=on&q=*:*&rows=0&wt=xml" + WhereStr + GroupStr + UserPara;
             string html = CreateSolrHttp(httpurl);
             return HtmlToFacetSolrModel(html);
         }
@@ -288,7 +288,8 @@ namespace LSolr
         #region 私有函数
         private DocSolr<T> tolist()
         {
-            string queryUrl = "/select?indent=on&q=*:*&wt=xml" + "&start=" + DataStart + "&rows=" + DataRows + SelectStr + WhereStr + OrderStr + UserPara;
+            //where参数不拼接到url，而在psot请求时放到post data里
+            string queryUrl = "/select?indent=on&q=*:*&wt=xml" + "&start=" + DataStart + "&rows=" + DataRows + SelectStr + OrderStr + UserPara;
             string html = CreateSolrHttp(queryUrl);
             return HtmlToDocSolrModel(html);
         }
@@ -315,7 +316,7 @@ namespace LSolr
 
 
             DateTime start = DateTime.Now;
-            string html = Helper.sendPost(queryUrl, null, HeadPara, "get");
+            string html = Helper.sendPost(queryUrl, null, HeadPara, "post", 5000, WhereStr);
             DateTime end = DateTime.Now;
             TimeLineMsg += "网络请求执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
             return html;

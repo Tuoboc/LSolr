@@ -18,8 +18,8 @@ namespace LSolr
         }
         private Where<T> where(Expression<Func<T, object>> func)
         {
-            _where = "&fq=" + GetWhereString(func);
-
+            string fq = GetWhereString(func);
+            _where = "&fq=" + fq;
             return this;
         }
 

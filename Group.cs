@@ -18,7 +18,7 @@ namespace LSolr
         public Group<T> group(Expression<Func<T, object>> func, List<FieldMap> map)
         {
             string tempString = GetSelectString(func, map);
-            GroupStr = "facet=on&facet.pivot=" + tempString;
+            GroupStr = "&facet=on&facet.missing=on&facet.pivot=" + tempString;
             try
             {
 

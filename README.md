@@ -61,7 +61,7 @@ public class goods
     public string goodcode { get; set; }
     [SolrField("price")]
     public double? price { get; set; }
-	public DateTime? createtime { get; set; }
+    public DateTime? createtime { get; set; }
 }
 ```
 ### 设置参数
@@ -128,6 +128,25 @@ Solr.Query<goods>().OrderBy(a => new { a.price,a.goodcode }).ToList();//正序�
 Solr.Query<goods>().OrderDescBy(a => new { a.price,a.goodcode }).ToList();//倒叙排序，支持多个字段
 Solr.Query<goods>().OrderBy(a => new { a.price }).OrderDescBy(a => new { a.goodcode }).ToList();//混合排序
 ```
+### 添加其他参数
+```c#
+Solr.Query<goods>().AddPara("&rows=10").ToList();//url后添加了&rows=10
+```
+### GroupBy分组函数
+```c#
+FacetSolr<goods> facetSolr = Solr.Query<goods>().Where(a => a.price>10).GroupBy(a => new { a.recordno, a.goodcode });
+int count = facetSolr.numFound;//Where筛选后数据总量
+foreach (FacetData<goods> item in facetSolr.data)
+{
+    //分组完，每组字段的值保存在entity里，在这里entity保存了recordno，goodcode的值
+    goods book = item.entity;
+	//每个分组数据总数
+    int num = item.num;
+}
+```
+Solr中group函数不能多字段分组，facet函数返回的结构为树形结构，所以为了接近SQL中的Group By，
+GroupBy方法使用的时facet,并且将树形结构转化为和SQL结果一样的Table结构。
+默认请求solr时facet.missing参数设为on，表示将null值也进行分组，也是为了保持和SQL一致。
 ## 其他功能
 ### 查看代码执行的各阶段耗时
 ```c#
@@ -138,7 +157,7 @@ String Msg = Solr.Query<goods>().Where(a => a.goodcode=="123").OutpuntTimeLine()
 * 因为时区的原因，会出现solr中的时间比数据库中时间少8小时的情况，如果在导入数据时没有处理，那么在查询时
 需要将时间减去8小时。或者参数中timezone设为"true"，这样就会自动将时间减去8小时。
 * 如果出现无法读取配置的情况，请在VS中将配置文件的属性中《复制到输出目录》设置为《始终复制》
-* 现在只支持查询语句，后续将增加增删改以及group by，sum等聚合函数
+* 现在只支持查询语句，后续将增加增删改以及sum等聚合函数
 * 现在还没有完善的异常体系，后续会增加
 * Where方法中只能查询的字段在左边，条件的值在右边
 * Where方法中只能识别SolrLike,SolrNotLike,SolrIn,SolrNotIn方法，如下使用方式会出错
