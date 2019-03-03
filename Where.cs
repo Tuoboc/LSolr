@@ -200,45 +200,87 @@ namespace LSolr
         private string VisitValueMemberExpression(MemberExpression func)
         {
             object value;
-            switch (func.Type.Name)
+            if (func.Type.IsGenericType && func.Type.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
-                case "Int64":
-                    {
-                        var getter = Expression.Lambda<Func<long>>(func).Compile();
-                        value = getter();
-                        return value.ToString();
-                    }
-                case "Int32":
-                    {
-                        var getter = Expression.Lambda<Func<int>>(func).Compile();
-                        value = getter();
-                        return value.ToString();
-                    }
-                case "String":
-                    {
-                        var getter = Expression.Lambda<Func<string>>(func).Compile();
-                        value = getter();
-                        return "\"" + value.ToString() + "\"";
-                    }
-                case "DateTime":
-                    {
-                        var getter = Expression.Lambda<Func<DateTime>>(func).Compile();
-                        value = getter();
-                        return Convert.ToDateTime(value).ToString("yyyy-MM-ddTHH:mm:ssZ");
-                    }
-                case "Decimal":
-                    {
-                        var getter = Expression.Lambda<Func<Decimal>>(func).Compile();
-                        value = getter();
-                        return value.ToString();
-                    }
-                default:
-                    {
-                        var getter = Expression.Lambda<Func<object>>(func).Compile();
-                        value = getter();
-                        return value.ToString();
-                    }
+                // If it is NULLABLE, then get the underlying type. eg if "Nullable<int>" then this will return just "int"
+                var fff = func.Type.GetGenericArguments()[0].Name;
+                switch (fff)
+                {
+                    case "Int64":
+                        {
+                            var getter = Expression.Lambda<Func<long?>>(func).Compile();
+                            value = getter();
+                            return value.ToString();
+                        }
+                    case "Int32":
+                        {
+                            var getter = Expression.Lambda<Func<int?>>(func).Compile();
+                            value = getter();
+                            return value.ToString();
+                        }
+                    case "DateTime":
+                        {
+                            var getter = Expression.Lambda<Func<DateTime?>>(func).Compile();
+                            value = getter();
+                            return Convert.ToDateTime(value).ToString("yyyy-MM-ddTHH:mm:ssZ");
+                        }
+                    case "Decimal":
+                        {
+                            var getter = Expression.Lambda<Func<Decimal?>>(func).Compile();
+                            value = getter();
+                            return value.ToString();
+                        }
+                    default:
+                        {
+                            var getter = Expression.Lambda<Func<object>>(func).Compile();
+                            value = getter();
+                            return value.ToString();
+                        }
+                }
             }
+            else
+            {
+                switch (func.Type.Name)
+                {
+                    case "Int64":
+                        {
+                            var getter = Expression.Lambda<Func<long>>(func).Compile();
+                            value = getter();
+                            return value.ToString();
+                        }
+                    case "Int32":
+                        {
+                            var getter = Expression.Lambda<Func<int>>(func).Compile();
+                            value = getter();
+                            return value.ToString();
+                        }
+                    case "String":
+                        {
+                            var getter = Expression.Lambda<Func<string>>(func).Compile();
+                            value = getter();
+                            return "\"" + value.ToString() + "\"";
+                        }
+                    case "DateTime":
+                        {
+                            var getter = Expression.Lambda<Func<DateTime>>(func).Compile();
+                            value = getter();
+                            return Convert.ToDateTime(value).ToString("yyyy-MM-ddTHH:mm:ssZ");
+                        }
+                    case "Decimal":
+                        {
+                            var getter = Expression.Lambda<Func<Decimal>>(func).Compile();
+                            value = getter();
+                            return value.ToString();
+                        }
+                    default:
+                        {
+                            var getter = Expression.Lambda<Func<object>>(func).Compile();
+                            value = getter();
+                            return value.ToString();
+                        }
+                }
+            }
+
         }
 
         private static string VisitConstantExpression(ConstantExpression func)
