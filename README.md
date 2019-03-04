@@ -124,6 +124,8 @@ Solr.Query<goods>().Page(1, 10).ToList();//第一页，每页10条
 注：如果没有分页，那么默认返回前10条数据
 ### 排序
 ```c#
+Solr.Query<goods>().OrderBy(a => a.price).ToList();//正序排序，单个字段
+Solr.Query<goods>().OrderDescBy(a => a.price).ToList();//倒序排序，单个字段
 Solr.Query<goods>().OrderBy(a => new { a.price,a.goodcode }).ToList();//正序排序，支持多个字段
 Solr.Query<goods>().OrderDescBy(a => new { a.price,a.goodcode }).ToList();//倒叙排序，支持多个字段
 Solr.Query<goods>().OrderBy(a => new { a.price }).OrderDescBy(a => new { a.goodcode }).ToList();//混合排序
@@ -143,6 +145,7 @@ foreach (FacetData<goods> item in facetSolr.data)
 	//每个分组数据总数
     int num = item.num;
 }
+FacetSolr<goods> facetSolr = Solr.Query<goods>().Where(a => a.price>10).GroupBy(a =>  a.recordno);//单个字段分组
 ```
 Solr中group函数不能多字段分组，facet函数返回的结构为树形结构，所以为了接近SQL中的Group By，
 GroupBy方法使用的时facet,并且将树形结构转化为和SQL结果一样的Table结构。

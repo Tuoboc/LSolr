@@ -62,6 +62,20 @@ namespace LSolr
                     }
                 }
             }
+            if (func.NodeType == ExpressionType.MemberAccess)
+            {
+                var expN = func as MemberExpression;
+                var field = map.Find(a => a.EntityField == expN.Member.Name);
+                if (field != null)
+                {
+                    if (!string.IsNullOrEmpty(field.SolrField))
+                        return field.SolrField;
+                    else
+                        return field.EntityField;
+                }
+                else
+                    return expN.Member.Name.ToString();
+            }
             return tempOrderString.Trim(',');
         }
     }
