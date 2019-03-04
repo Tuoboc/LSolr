@@ -202,9 +202,8 @@ namespace LSolr
             object value;
             if (func.Type.IsGenericType && func.Type.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
-                // If it is NULLABLE, then get the underlying type. eg if "Nullable<int>" then this will return just "int"
-                var fff = func.Type.GetGenericArguments()[0].Name;
-                switch (fff)
+                var typename = func.Type.GetGenericArguments()[0].Name;
+                switch (typename)
                 {
                     case "Int64":
                         {
@@ -341,12 +340,16 @@ namespace LSolr
             switch (func.Method.Name)
             {
                 case "SolrLike":
+                case "Like":
                     return CreateLikeMethodWhereString(func);
                 case "SolrNotLike":
+                case "NotLike":
                     return CreateNotLikeMethodWhereString(func);
                 case "SolrIn":
+                case "In":
                     return CreateInMethodWhereString(func);
                 case "SolrNotIn":
+                case "NotIn":
                     return CreateNotInMethodWhereString(func);
             }
             return "";
@@ -355,8 +358,24 @@ namespace LSolr
         private string CreateLikeMethodWhereString(MethodCallExpression func)
         {
             var caller = VisitMemberExpression(func.Arguments[0] as MemberExpression);
-            var value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
-            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ");
+            var rightType = CheckExpressionType(func.Arguments[1]);
+            var value = "";
+            switch (rightType)
+            {
+                case EnumNodeType.BinaryOperator:
+                    value = VisitBinaryExpression(func.Arguments[1] as BinaryExpression);
+                    break;
+                case EnumNodeType.Constant:
+                    value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
+                    break;
+                case EnumNodeType.UndryOperator:
+                    value = VisitUnaryExpression(func.Arguments[1] as UnaryExpression);
+                    break;
+                case EnumNodeType.MemberAccess:
+                    value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
+                    break;
+            }
+            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
             var match = VisitConstantExpression(func.Arguments[2] as ConstantExpression);
             if (match.ToLower() == "left")
                 return caller + ":*" + value;
@@ -368,8 +387,24 @@ namespace LSolr
         private string CreateNotLikeMethodWhereString(MethodCallExpression func)
         {
             var caller = VisitMemberExpression(func.Arguments[0] as MemberExpression);
-            var value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
-            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ");
+            var rightType = CheckExpressionType(func.Arguments[1]);
+            var value = "";
+            switch (rightType)
+            {
+                case EnumNodeType.BinaryOperator:
+                    value = VisitBinaryExpression(func.Arguments[1] as BinaryExpression);
+                    break;
+                case EnumNodeType.Constant:
+                    value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
+                    break;
+                case EnumNodeType.UndryOperator:
+                    value = VisitUnaryExpression(func.Arguments[1] as UnaryExpression);
+                    break;
+                case EnumNodeType.MemberAccess:
+                    value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
+                    break;
+            }
+            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
             var match = VisitConstantExpression(func.Arguments[2] as ConstantExpression);
             if (match.ToLower() == "left")
                 return "!" + caller + ":*" + value;
@@ -383,8 +418,24 @@ namespace LSolr
         {
             string MemberType = "";
             var caller = VisitMemberExpression(func.Arguments[0] as MemberExpression, ref MemberType);
-            var value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
-            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ");
+            var rightType = CheckExpressionType(func.Arguments[1]);
+            var value = "";
+            switch (rightType)
+            {
+                case EnumNodeType.BinaryOperator:
+                    value = VisitBinaryExpression(func.Arguments[1] as BinaryExpression);
+                    break;
+                case EnumNodeType.Constant:
+                    value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
+                    break;
+                case EnumNodeType.UndryOperator:
+                    value = VisitUnaryExpression(func.Arguments[1] as UnaryExpression);
+                    break;
+                case EnumNodeType.MemberAccess:
+                    value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
+                    break;
+            }
+            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
             string InString = "";
             if (MemberType == "String")
             {
@@ -410,8 +461,24 @@ namespace LSolr
         {
             string MemberType = "";
             var caller = VisitMemberExpression(func.Arguments[0] as MemberExpression, ref MemberType);
-            var value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
-            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ");
+            var rightType = CheckExpressionType(func.Arguments[1]);
+            var value = "";
+            switch (rightType)
+            {
+                case EnumNodeType.BinaryOperator:
+                    value = VisitBinaryExpression(func.Arguments[1] as BinaryExpression);
+                    break;
+                case EnumNodeType.Constant:
+                    value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
+                    break;
+                case EnumNodeType.UndryOperator:
+                    value = VisitUnaryExpression(func.Arguments[1] as UnaryExpression);
+                    break;
+                case EnumNodeType.MemberAccess:
+                    value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
+                    break;
+            }
+            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
             string InString = "";
             if (MemberType == "String")
             {
