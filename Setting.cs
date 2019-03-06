@@ -19,8 +19,8 @@ namespace LSolr
 
         public string solrpsw { get; set; }
         [DataMember]
-        public string timezone { get; set; }
+        public string solrtimezone { get; set; }
         [DataMember]
-        public string outlog { get; set; }
+        public string solroutlog { get; set; }
     }
 }

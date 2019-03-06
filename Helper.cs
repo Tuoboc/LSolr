@@ -32,7 +32,7 @@ namespace LSolr
                 System.IO.Stream reqStream = null;
                 try
                 {
-                    if (setting.outlog == "true")
+                    if (setting.solroutlog.ToLower() == "true")
                         WriteLogs("Solr查询记录：" + url + WhereString);
                     req = (HttpWebRequest)WebRequest.Create(url);
                     req.Method = method;
@@ -252,6 +252,12 @@ namespace LSolr
                             case "solrpsw":
                                 model.solrpsw = config.Attribute("value").Value;
                                 break;
+                            case "solrtimezone":
+                                model.solrtimezone = config.Attribute("value").Value;
+                                break;
+                            case "solroutlog":
+                                model.solroutlog = config.Attribute("value").Value;
+                                break;
                         }
 
                     }
@@ -272,6 +278,12 @@ namespace LSolr
                                 break;
                             case "solrpsw":
                                 model.solrpsw = config.Attribute("value").Value;
+                                break;
+                            case "solrtimezone":
+                                model.solrtimezone = config.Attribute("value").Value;
+                                break;
+                            case "solroutlog":
+                                model.solroutlog = config.Attribute("value").Value;
                                 break;
                         }
                     }

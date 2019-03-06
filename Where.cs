@@ -300,7 +300,7 @@ namespace LSolr
             else if (vaule is DateTime)
             {
                 DateTime time = (DateTime)vaule;
-                if (Helper.setting.timezone.ToLower() == "true")
+                if (Helper.setting.solrtimezone.ToLower() == "true")
                     time = time.AddHours(-8);
                 v_str = string.Format("{0}", time.ToString("yyyy-MM-ddTHH:mm:ssZ"));
             }
