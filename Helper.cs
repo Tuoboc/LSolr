@@ -32,6 +32,8 @@ namespace LSolr
                 System.IO.Stream reqStream = null;
                 try
                 {
+                    if (setting.outlog == "true")
+                        WriteLogs("Solr查询记录：" + url + WhereString);
                     req = (HttpWebRequest)WebRequest.Create(url);
                     req.Method = method;
                     req.KeepAlive = false;
@@ -52,7 +54,7 @@ namespace LSolr
                 }
                 catch (Exception ex)
                 {
-                    throw ex;
+                    throw new Exception("请求solr失败，请求url：" + url + WhereString + ex.Message);
                 }
                 finally
                 {
@@ -288,5 +290,35 @@ namespace LSolr
             return model;
         }
 
+        public static void WriteLogs(string content)
+        {
+            string path = AppDomain.CurrentDomain.BaseDirectory;
+            if (!string.IsNullOrEmpty(path))
+            {
+                path = AppDomain.CurrentDomain.BaseDirectory + "/SolrLog";
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+                path = path + "\\" + DateTime.Now.ToString("yyyyMMdd");
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+                path = path + "\\" + DateTime.Now.ToString("yyyyMMdd") + ".txt";
+                if (!File.Exists(path))
+                {
+                    FileStream fs = File.Create(path);
+                    fs.Close();
+                }
+                if (File.Exists(path))
+                {
+                    StreamWriter sw = new StreamWriter(path, true, System.Text.Encoding.Default);
+                    sw.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "-->" + content);
+                    //  sw.WriteLine("----------------------------------------");
+                    sw.Close();
+                }
+            }
+        }
     }
 }

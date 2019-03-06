@@ -157,7 +157,7 @@ namespace LSolr
             GroupStr = group.GroupStr;
             DateTime end = DateTime.Now;
             TimeLineMsg += "GroupBy方法执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
-            string httpurl = "/select?indent=on&q=*:*&rows=0&wt=xml" + WhereStr + GroupStr + UserPara;
+            string httpurl = "/select?indent=on&q=*:*&rows=0&wt=xml" + GroupStr + UserPara;
             string html = CreateSolrHttp(httpurl);
             return HtmlToFacetSolrModel(html);
         }
@@ -479,35 +479,38 @@ namespace LSolr
         {
             Type type = typeof(T);
             object o = entity == null ? Activator.CreateInstance(type) : entity;
-            var infos = type.GetProperties();
-            var field = fieldMaps.Find(a => a.SolrField == fieldname || a.EntityField == fieldname);
-            foreach (var info in infos.Where(a => a.Name == field.EntityField).ToList())
+            if (!string.IsNullOrEmpty(value))
             {
-                switch (field.EntityType)
+                var infos = type.GetProperties();
+                var field = fieldMaps.Find(a => a.SolrField == fieldname || a.EntityField == fieldname);
+                foreach (var info in infos.Where(a => a.Name == field.EntityField).ToList())
                 {
-                    case "String":
-                        info.SetValue(o, value);
-                        break;
-                    case "Double":
-                        info.SetValue(o, Convert.ToDouble(value));
-                        break;
-                    case "Float":
-                        info.SetValue(o, float.Parse(value));
-                        break;
-                    case "Decimal":
-                        info.SetValue(o, Convert.ToDecimal(value));
-                        break;
-                    case "Int64":
-                        info.SetValue(o, Convert.ToInt64(value));
-                        break;
-                    case "Int32":
-                        info.SetValue(o, Convert.ToInt32(value));
-                        break;
-                    case "DateTime":
-                        info.SetValue(o, Convert.ToDateTime(value));
-                        break;
-                }
+                    switch (field.EntityType)
+                    {
+                        case "String":
+                            info.SetValue(o, value);
+                            break;
+                        case "Double":
+                            info.SetValue(o, Convert.ToDouble(value));
+                            break;
+                        case "Float":
+                            info.SetValue(o, float.Parse(value));
+                            break;
+                        case "Decimal":
+                            info.SetValue(o, Convert.ToDecimal(value));
+                            break;
+                        case "Int64":
+                            info.SetValue(o, Convert.ToInt64(value));
+                            break;
+                        case "Int32":
+                            info.SetValue(o, Convert.ToInt32(value));
+                            break;
+                        case "DateTime":
+                            info.SetValue(o, Convert.ToDateTime(value));
+                            break;
+                    }
 
+                }
             }
             return (T)o;
         }

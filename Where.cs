@@ -101,9 +101,9 @@ namespace LSolr
             if (right == "null")
             {
                 if (operaType == ":")
-                    return left + ":*";
-                else if (operaType == "<>")
                     return "!" + left + ":*";
+                else if (operaType == "<>")
+                    return left + ":*";
             }
             else
             {

@@ -26,6 +26,7 @@ solrhttp|必须|solr的访问地址|http://aaa.bbb.com/solr/
 solruserid|非必需|Basic认证的账号|
 solrpsw|非必需|Basic认证的密码|
 timezone|非必需|时间是否减去8小时|"true"或者"false",默认"false"
+outlog|非必需|是否记录solr查询记录|"true"或者"false",默认"false"
 
 .Net Core配置示例：
 ```javascript
