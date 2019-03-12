@@ -229,6 +229,12 @@ namespace LSolr
                             value = getter();
                             return value.ToString();
                         }
+                    case "Double":
+                        {
+                            var getter = Expression.Lambda<Func<double?>>(func).Compile();
+                            value = getter();
+                            return value.ToString();
+                        }
                     default:
                         {
                             var getter = Expression.Lambda<Func<object>>(func).Compile();
@@ -271,6 +277,12 @@ namespace LSolr
                             value = getter();
                             return value.ToString();
                         }
+                    case "Double":
+                        {
+                            var getter = Expression.Lambda<Func<double>>(func).Compile();
+                            value = getter();
+                            return value.ToString();
+                        }
                     default:
                         {
                             var getter = Expression.Lambda<Func<object>>(func).Compile();
@@ -300,7 +312,7 @@ namespace LSolr
             else if (vaule is DateTime)
             {
                 DateTime time = (DateTime)vaule;
-                if (Helper.setting.solrtimezone.ToLower() == "true")
+                if (!string.IsNullOrEmpty(Helper.setting.solrtimezone) && Helper.setting.solrtimezone.ToLower() == "true")
                     time = time.AddHours(-8);
                 v_str = string.Format("{0}", time.ToString("yyyy-MM-ddTHH:mm:ssZ"));
             }

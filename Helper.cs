@@ -32,7 +32,7 @@ namespace LSolr
                 System.IO.Stream reqStream = null;
                 try
                 {
-                    if (setting.solroutlog.ToLower() == "true")
+                    if (!string.IsNullOrEmpty(setting.solroutlog) && setting.solroutlog.ToLower() == "true")
                         WriteLogs("Solr查询记录：" + url + WhereString);
                     req = (HttpWebRequest)WebRequest.Create(url);
                     req.Method = method;
