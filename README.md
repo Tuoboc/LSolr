@@ -168,6 +168,16 @@ String Msg = Solr.Query<goods>().Where(a => a.goodcode=="123").OutpuntTimeLine()
 ```c#
 Solr.Query<goods>().Where(a =>  a.createtime > DateTime.Now.AddDays(1)).ToList();
 ```
+* 如果solr使用Oracle数据库作为数据源，因为Oracle中空字符串和null都视为null，所以在Where方法中查询某字段为空请使用null做判断条件
+```c#
+Solr.Query<goods>().Where(a => a.goodcode==null).ToList();//可以查询到正确数据
+Solr.Query<goods>().Where(a => a.goodcode=="").ToList();//查询到的数据不正确
+```
+* 如果solr使用Mysql数据库作为数据源，因为Mysql中空字符串和null是两种不同类型，所以在Where方法中查询某字段为空时，请先确认数据库中保存的是空字符串还是NULL
+```c#
+Solr.Query<goods>().Where(a => a.goodcode==null).ToList();//可以查询到goodcode为null数据
+Solr.Query<goods>().Where(a => a.goodcode=="").ToList();//可以查询到goodcode为空字符串的数据
+```
 所以请换成以下方式
 ```c#
 DateTime dt= DateTime.Now.AddDays(1);
