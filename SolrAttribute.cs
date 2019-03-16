@@ -8,10 +8,16 @@ namespace LSolr
     public class SolrFieldAttribute : Attribute
     {
         public string SolrField { get; set; }
-
-        public SolrFieldAttribute(string field)
+        public bool IsKey { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="field"></param>
+        /// <param name="IsKey">是否为主键</param>
+        public SolrFieldAttribute(string field, bool IsKey = false)
         {
             this.SolrField = SolrField;
+            this.IsKey = IsKey;
         }
     }
 

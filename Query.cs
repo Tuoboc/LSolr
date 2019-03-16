@@ -50,8 +50,8 @@ namespace LSolr
 
         public Query<T> query()
         {
-            fieldMaps = GetFieldMap();
             Type type = typeof(T);
+            fieldMaps = Helper.GetFieldMap(type);
             try
             {
                 Attribute[] attrs = System.Attribute.GetCustomAttributes(type);
@@ -515,41 +515,6 @@ namespace LSolr
             return (T)o;
         }
 
-        private List<FieldMap> GetFieldMap()
-        {
-            Type type = typeof(T);
-            List<FieldMap> result = new List<FieldMap>();
-            PropertyInfo[] propertyInfos = type.GetProperties();
-            foreach (PropertyInfo item in propertyInfos)
-            {
-                FieldMap map = new FieldMap();
-                IList<CustomAttributeData> attributes = CustomAttributeData.GetCustomAttributes(item);
-
-                foreach (CustomAttributeData data in attributes)
-                {
-                    if (data.AttributeType == typeof(SolrFieldAttribute))
-                    {
-                        foreach (CustomAttributeTypedArgument ite in data.ConstructorArguments)
-                        {
-                            map.SolrField = ite.Value.ToString();
-                        }
-                    }
-
-                }
-                map.EntityField = item.Name;
-                if (item.PropertyType.IsGenericType && item.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                {
-                    // If it is NULLABLE, then get the underlying type. eg if "Nullable<int>" then this will return just "int"
-                    map.EntityType = item.PropertyType.GetGenericArguments()[0].Name;
-                }
-                else
-                {
-                    map.EntityType = item.PropertyType.Name;
-                }
-                result.Add(map);
-            }
-            return result;
-        }
         #endregion
     }
 }

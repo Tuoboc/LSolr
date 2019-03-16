@@ -11,5 +11,6 @@ namespace LSolr.Model
         public string EntityType { get; set; }
 
         public string Value { get; set; }
+        public bool IsKey { get; set; }
     }
 }

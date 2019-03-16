@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Reflection;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Tasks;
@@ -331,6 +332,36 @@ namespace LSolr
                     sw.Close();
                 }
             }
+        }
+
+        public static List<FieldMap> GetFieldMap(Type type)
+        {
+            List<FieldMap> result = new List<FieldMap>();
+            PropertyInfo[] propertyInfos = type.GetProperties();
+            foreach (PropertyInfo item in propertyInfos)
+            {
+                FieldMap map = new FieldMap();
+                var attr = item.GetCustomAttributes(typeof(SolrFieldAttribute), false);
+                if (attr.Length > 0)
+                {
+                    var field = attr[0] as SolrFieldAttribute;
+                    if (!string.IsNullOrEmpty(field.SolrField))
+                        map.SolrField = field.SolrField;
+                    map.IsKey = field.IsKey;
+                }
+                map.EntityField = item.Name;
+                if (item.PropertyType.IsGenericType && item.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    // If it is NULLABLE, then get the underlying type. eg if "Nullable<int>" then this will return just "int"
+                    map.EntityType = item.PropertyType.GetGenericArguments()[0].Name;
+                }
+                else
+                {
+                    map.EntityType = item.PropertyType.Name;
+                }
+                result.Add(map);
+            }
+            return result;
         }
     }
 }
