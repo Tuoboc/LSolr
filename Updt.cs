@@ -15,12 +15,8 @@ namespace LSolr
         #region 参数
         public string CoreName = "";//solr中core的名字
         private string WhereStr = "";//条件参数字符串
-        public string SelectStr = "";//查询字段字符串
-        public string OrderStr = "";//排序条件
         private string UserPara = "";//用户传的自定义参数
-        private string GroupStr = "";
-        public int DataStart = 0;//solr中的start参数
-        public int DataRows = 10;//solr中的rows参数
+        private string UpdateData = "";//要更新的数据
         public List<FieldMap> fieldMaps;
         private string TimeLineMsg = "";
 
@@ -48,7 +44,7 @@ namespace LSolr
             TimeLineMsg += "Query方法执行时间" + Math.Round((end - start).TotalSeconds * 1000, 4) + "毫秒.";
         }
 
-        public Updt<T> update()
+        private Updt<T> update()
         {
             Type type = typeof(T);
             fieldMaps = Helper.GetFieldMap(type);
@@ -75,20 +71,13 @@ namespace LSolr
             return this;
         }
 
-
-
-        /// <summary>
-        /// 查询条件
-        /// </summary>
-        /// <param name="exp">现支持== != > >= &lt; &lt;= Like NotLike In NotIn </param>
-        /// <returns></returns>
-        public Updt<T> Where(Expression<Func<T, object>> exp)
+        public Updt<T> Update(Expression<Func<T, object>> exp)
         {
             DateTime start = DateTime.Now;
-            Where<T> where = new Where<T>(exp, fieldMaps);
-            WhereStr += where._where;
+            Update<T> update = new Update<T>(exp, fieldMaps);
+            UpdateData = update.UpdateData;
             DateTime end = DateTime.Now;
-            TimeLineMsg += "Where方法执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
+            TimeLineMsg += "Update方法执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
             return this;
         }
 
@@ -105,7 +94,66 @@ namespace LSolr
 
         public string OutpuntTimeLine()
         {
+            UpdateModel();
             return TimeLineMsg;
+        }
+
+        public bool UpdateModel()
+        {
+            string url = string.IsNullOrEmpty(solrhttp) ? Helper.setting.solrhttp : solrhttp;
+            if (string.IsNullOrEmpty(url))
+                throw new Exception("配置文件中没有找到solrhttp配置");
+            string userid = string.IsNullOrEmpty(solruserid) ? Helper.setting.solruserid : solruserid;
+            string psw = string.IsNullOrEmpty(solrpsw) ? Helper.setting.solrpsw : solrpsw;
+            Dictionary<string, string> HeadPara = new Dictionary<string, string>();
+            if (!string.IsNullOrEmpty(userid) && !string.IsNullOrEmpty(psw))
+            {
+                byte[] bytes = Encoding.Default.GetBytes(userid + ":" + psw);
+                string value = Convert.ToBase64String(bytes);
+                HeadPara.Add("Authorization", "Basic " + value);
+            }
+            string queryUrl = url + CoreName + "/update?boost=1.0&commitWithin=1000&overwrite=true&wt=xml" + UserPara;
+            string html = Helper.sendPost(queryUrl, null, HeadPara, "post", 5000, UpdateData, "application/json");
+            XDocument doc = XDocument.Parse(html);
+            //数据总数 
+            var eleList = doc.Element("response").Element("lst").Elements("int");
+            foreach (var item in eleList)
+            {
+                if (item.Attribute("name").Value == "status" && item.Value == "0")
+                    return true;
+            }
+            throw new Exception(html);
+        }
+
+        /// <summary>
+        /// 增量导入所有数据
+        /// </summary>
+        /// <returns></returns>
+        public bool UpdateAllNewData()
+        {
+            string url = string.IsNullOrEmpty(solrhttp) ? Helper.setting.solrhttp : solrhttp;
+            if (string.IsNullOrEmpty(url))
+                throw new Exception("配置文件中没有找到solrhttp配置");
+            string userid = string.IsNullOrEmpty(solruserid) ? Helper.setting.solruserid : solruserid;
+            string psw = string.IsNullOrEmpty(solrpsw) ? Helper.setting.solrpsw : solrpsw;
+            Dictionary<string, string> HeadPara = new Dictionary<string, string>();
+            if (!string.IsNullOrEmpty(userid) && !string.IsNullOrEmpty(psw))
+            {
+                byte[] bytes = Encoding.Default.GetBytes(userid + ":" + psw);
+                string value = Convert.ToBase64String(bytes);
+                HeadPara.Add("Authorization", "Basic " + value);
+            }
+            string queryUrl = url + CoreName + "/dataimport?indent=on&wt=xml" + UserPara;
+            string html = Helper.sendPost(queryUrl, null, HeadPara, "post", 5000, UpdateData, "application/json");
+            XDocument doc = XDocument.Parse(html);
+            //数据总数 
+            var eleList = doc.Element("response").Element("lst").Elements("int");
+            foreach (var item in eleList)
+            {
+                if (item.Attribute("name").Value == "status" && item.Value == "0")
+                    return true;
+            }
+            throw new Exception(html);
         }
 
         #region 私有函数

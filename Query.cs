@@ -161,11 +161,25 @@ namespace LSolr
             string html = CreateSolrHttp(httpurl);
             return HtmlToFacetSolrModel(html);
         }
-
+        /// <summary>
+        /// 输出各阶段花费时间
+        /// </summary>
+        /// <returns></returns>
         public string OutpuntTimeLine()
         {
             var result = tolist();
             return TimeLineMsg;
+        }
+        /// <summary>
+        /// 输出最后生成的请求url
+        /// </summary>
+        /// <returns></returns>
+        public string OutpuntRequestUrl()
+        {
+            string url = string.IsNullOrEmpty(solrhttp) ? Helper.setting.solrhttp : solrhttp;
+            string paras = "/select?indent=on&q=*:*&wt=xml" + "&start=" + DataStart + "&rows=" + DataRows + SelectStr + OrderStr + UserPara;
+            string queryUrl = url + CoreName + paras + WhereStr;
+            return queryUrl;
         }
 
         #region 分页相关参数设置

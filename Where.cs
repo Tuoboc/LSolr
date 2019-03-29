@@ -65,35 +65,35 @@ namespace LSolr
             var left = "";
             var right = "";
             var leftFunc = func.Left;
-            var leftType = CheckExpressionType(func.Left);
+            var leftType = ExpressionEnum.CheckExpressionType(func.Left);
             string result = "";
             switch (leftType)
             {
-                case EnumNodeType.BinaryOperator:
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
                     left = VisitBinaryExpression(func.Left as BinaryExpression); break;
-                case EnumNodeType.Constant:
+                case ExpressionEnum.EnumNodeType.Constant:
                     left = VisitConstantExpression(func.Left as ConstantExpression); break;
-                case EnumNodeType.MemberAccess:
+                case ExpressionEnum.EnumNodeType.MemberAccess:
                     left = VisitMemberExpression(func.Left as MemberExpression); break;
-                case EnumNodeType.UndryOperator:
+                case ExpressionEnum.EnumNodeType.UndryOperator:
                     left = VisitUnaryExpression(func.Left as UnaryExpression); break;
-                case EnumNodeType.Call:
+                case ExpressionEnum.EnumNodeType.Call:
                     left = VisitMethodCallExpression(func.Left as MethodCallExpression); break;
             }
 
             var rightFunc = func.Right;
-            var rightType = CheckExpressionType(func.Right);
+            var rightType = ExpressionEnum.CheckExpressionType(func.Right);
             switch (rightType)
             {
-                case EnumNodeType.BinaryOperator:
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
                     right = VisitBinaryExpression(func.Right as BinaryExpression); break;
-                case EnumNodeType.Constant:
+                case ExpressionEnum.EnumNodeType.Constant:
                     right = VisitConstantExpression(func.Right as ConstantExpression); break;
-                case EnumNodeType.MemberAccess:
+                case ExpressionEnum.EnumNodeType.MemberAccess:
                     right = VisitValueMemberExpression(func.Right as MemberExpression); break;
-                case EnumNodeType.UndryOperator:
+                case ExpressionEnum.EnumNodeType.UndryOperator:
                     right = VisitValueUnaryExpression(func.Right as UnaryExpression); break;
-                case EnumNodeType.Call:
+                case ExpressionEnum.EnumNodeType.Call:
                     right = VisitMethodCallExpression(func.Right as MethodCallExpression); break;
             }
             var operaType = ExpressionTypeToString(func.NodeType);
@@ -139,19 +139,39 @@ namespace LSolr
             return result;
         }
 
-        private string VisitUnaryExpression(UnaryExpression func)
+        private string VisitUnaryExpression(UnaryExpression func, ref string Type)
         {
-            var funcType = CheckExpressionType(func.Operand);
+
+            var funcType = ExpressionEnum.CheckExpressionType(func.Operand);
             switch (funcType)
             {
-                case EnumNodeType.BinaryOperator:
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
                     return VisitBinaryExpression(func.Operand as BinaryExpression);
-                case EnumNodeType.Constant:
+                case ExpressionEnum.EnumNodeType.Constant:
                     return VisitConstantExpression(func.Operand as ConstantExpression);
 
-                case EnumNodeType.UndryOperator:
+                case ExpressionEnum.EnumNodeType.UndryOperator:
                     return VisitUnaryExpression(func.Operand as UnaryExpression);
-                case EnumNodeType.MemberAccess:
+                case ExpressionEnum.EnumNodeType.MemberAccess:
+                    return VisitMemberExpression(func.Operand as MemberExpression, ref Type);
+
+            }
+            return "";
+        }
+
+        private string VisitUnaryExpression(UnaryExpression func)
+        {
+            var funcType = ExpressionEnum.CheckExpressionType(func.Operand);
+            switch (funcType)
+            {
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
+                    return VisitBinaryExpression(func.Operand as BinaryExpression);
+                case ExpressionEnum.EnumNodeType.Constant:
+                    return VisitConstantExpression(func.Operand as ConstantExpression);
+
+                case ExpressionEnum.EnumNodeType.UndryOperator:
+                    return VisitUnaryExpression(func.Operand as UnaryExpression);
+                case ExpressionEnum.EnumNodeType.MemberAccess:
                     return VisitMemberExpression(func.Operand as MemberExpression);
 
             }
@@ -159,17 +179,17 @@ namespace LSolr
         }
         private string VisitValueUnaryExpression(UnaryExpression func)
         {
-            var funcType = CheckExpressionType(func.Operand);
+            var funcType = ExpressionEnum.CheckExpressionType(func.Operand);
             switch (funcType)
             {
-                case EnumNodeType.BinaryOperator:
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
                     return VisitBinaryExpression(func.Operand as BinaryExpression);
-                case EnumNodeType.Constant:
+                case ExpressionEnum.EnumNodeType.Constant:
                     return VisitConstantExpression(func.Operand as ConstantExpression);
 
-                case EnumNodeType.UndryOperator:
+                case ExpressionEnum.EnumNodeType.UndryOperator:
                     return VisitUnaryExpression(func.Operand as UnaryExpression);
-                case EnumNodeType.MemberAccess:
+                case ExpressionEnum.EnumNodeType.MemberAccess:
                     return VisitValueMemberExpression(func.Operand as MemberExpression);
 
             }
@@ -178,7 +198,12 @@ namespace LSolr
 
         private string VisitMemberExpression(MemberExpression func, ref string Type)
         {
-            Type = func.Type.Name;
+            if (func.Type.IsGenericType && func.Type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                Type = func.Type.GetGenericArguments()[0].Name;
+            }
+            else
+                Type = func.Type.Name;
             return VisitMemberExpression(func);
         }
 
@@ -370,20 +395,20 @@ namespace LSolr
         private string CreateLikeMethodWhereString(MethodCallExpression func)
         {
             var caller = VisitMemberExpression(func.Arguments[0] as MemberExpression);
-            var rightType = CheckExpressionType(func.Arguments[1]);
+            var rightType = ExpressionEnum.CheckExpressionType(func.Arguments[1]);
             var value = "";
             switch (rightType)
             {
-                case EnumNodeType.BinaryOperator:
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
                     value = VisitBinaryExpression(func.Arguments[1] as BinaryExpression);
                     break;
-                case EnumNodeType.Constant:
+                case ExpressionEnum.EnumNodeType.Constant:
                     value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
                     break;
-                case EnumNodeType.UndryOperator:
+                case ExpressionEnum.EnumNodeType.UndryOperator:
                     value = VisitUnaryExpression(func.Arguments[1] as UnaryExpression);
                     break;
-                case EnumNodeType.MemberAccess:
+                case ExpressionEnum.EnumNodeType.MemberAccess:
                     value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
                     break;
             }
@@ -399,20 +424,20 @@ namespace LSolr
         private string CreateNotLikeMethodWhereString(MethodCallExpression func)
         {
             var caller = VisitMemberExpression(func.Arguments[0] as MemberExpression);
-            var rightType = CheckExpressionType(func.Arguments[1]);
+            var rightType = ExpressionEnum.CheckExpressionType(func.Arguments[1]);
             var value = "";
             switch (rightType)
             {
-                case EnumNodeType.BinaryOperator:
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
                     value = VisitBinaryExpression(func.Arguments[1] as BinaryExpression);
                     break;
-                case EnumNodeType.Constant:
+                case ExpressionEnum.EnumNodeType.Constant:
                     value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
                     break;
-                case EnumNodeType.UndryOperator:
+                case ExpressionEnum.EnumNodeType.UndryOperator:
                     value = VisitUnaryExpression(func.Arguments[1] as UnaryExpression);
                     break;
-                case EnumNodeType.MemberAccess:
+                case ExpressionEnum.EnumNodeType.MemberAccess:
                     value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
                     break;
             }
@@ -428,22 +453,32 @@ namespace LSolr
 
         private string CreateInMethodWhereString(MethodCallExpression func)
         {
+            var leftType = ExpressionEnum.CheckExpressionType(func.Arguments[0]);
+            string caller = "";
             string MemberType = "";
-            var caller = VisitMemberExpression(func.Arguments[0] as MemberExpression, ref MemberType);
-            var rightType = CheckExpressionType(func.Arguments[1]);
+            switch (leftType)
+            {
+                case ExpressionEnum.EnumNodeType.MemberAccess:
+                    caller = VisitMemberExpression(func.Arguments[0] as MemberExpression, ref MemberType); break;
+                case ExpressionEnum.EnumNodeType.Call:
+                    caller = VisitMethodCallExpression(func.Arguments[0] as MethodCallExpression); break;
+                case ExpressionEnum.EnumNodeType.UndryOperator:
+                    caller = VisitUnaryExpression(func.Arguments[0] as UnaryExpression, ref MemberType); break;
+            }
+            var rightType = ExpressionEnum.CheckExpressionType(func.Arguments[1]);
             var value = "";
             switch (rightType)
             {
-                case EnumNodeType.BinaryOperator:
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
                     value = VisitBinaryExpression(func.Arguments[1] as BinaryExpression);
                     break;
-                case EnumNodeType.Constant:
+                case ExpressionEnum.EnumNodeType.Constant:
                     value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
                     break;
-                case EnumNodeType.UndryOperator:
+                case ExpressionEnum.EnumNodeType.UndryOperator:
                     value = VisitUnaryExpression(func.Arguments[1] as UnaryExpression);
                     break;
-                case EnumNodeType.MemberAccess:
+                case ExpressionEnum.EnumNodeType.MemberAccess:
                     value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
                     break;
             }
@@ -460,7 +495,7 @@ namespace LSolr
             {
                 foreach (var item in value.Split(','))
                 {
-                    InString += item + ",";
+                    InString += item + " ";
                 }
             }
             if (InString != "")
@@ -471,22 +506,32 @@ namespace LSolr
 
         private string CreateNotInMethodWhereString(MethodCallExpression func)
         {
+            var leftType = ExpressionEnum.CheckExpressionType(func.Arguments[0]);
+            string caller = "";
             string MemberType = "";
-            var caller = VisitMemberExpression(func.Arguments[0] as MemberExpression, ref MemberType);
-            var rightType = CheckExpressionType(func.Arguments[1]);
+            switch (leftType)
+            {
+                case ExpressionEnum.EnumNodeType.MemberAccess:
+                    caller = VisitMemberExpression(func.Arguments[0] as MemberExpression, ref MemberType); break;
+                case ExpressionEnum.EnumNodeType.Call:
+                    caller = VisitMethodCallExpression(func.Arguments[0] as MethodCallExpression); break;
+                case ExpressionEnum.EnumNodeType.UndryOperator:
+                    caller = VisitUnaryExpression(func.Arguments[0] as UnaryExpression, ref MemberType); break;
+            }
+            var rightType = ExpressionEnum.CheckExpressionType(func.Arguments[1]);
             var value = "";
             switch (rightType)
             {
-                case EnumNodeType.BinaryOperator:
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
                     value = VisitBinaryExpression(func.Arguments[1] as BinaryExpression);
                     break;
-                case EnumNodeType.Constant:
+                case ExpressionEnum.EnumNodeType.Constant:
                     value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
                     break;
-                case EnumNodeType.UndryOperator:
+                case ExpressionEnum.EnumNodeType.UndryOperator:
                     value = VisitUnaryExpression(func.Arguments[1] as UnaryExpression);
                     break;
-                case EnumNodeType.MemberAccess:
+                case ExpressionEnum.EnumNodeType.MemberAccess:
                     value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
                     break;
             }
@@ -503,7 +548,7 @@ namespace LSolr
             {
                 foreach (var item in value.Split(','))
                 {
-                    InString += item + ",";
+                    InString += item + " ";
                 }
             }
             if (InString != "")
@@ -512,50 +557,7 @@ namespace LSolr
                 return "";
         }
 
-        public enum EnumNodeType
-        {
 
-            BinaryOperator = 1,
-
-            UndryOperator = 2,
-
-            Constant = 3,
-
-            MemberAccess = 4,
-
-            Call = 5,
-
-            Unknown = -99,
-
-            NotSupported = -98
-        }
-
-        private static EnumNodeType CheckExpressionType(Expression func)
-        {
-            switch (func.NodeType)
-            {
-                case ExpressionType.AndAlso:
-                case ExpressionType.OrElse:
-                case ExpressionType.Equal:
-                case ExpressionType.GreaterThanOrEqual:
-                case ExpressionType.LessThanOrEqual:
-                case ExpressionType.GreaterThan:
-                case ExpressionType.LessThan:
-                case ExpressionType.NotEqual:
-                    return EnumNodeType.BinaryOperator;
-                case ExpressionType.Constant:
-                    return EnumNodeType.Constant;
-                case ExpressionType.MemberAccess:
-                    return EnumNodeType.MemberAccess;
-                case ExpressionType.Call:
-                    return EnumNodeType.Call;
-                case ExpressionType.Not:
-                case ExpressionType.Convert:
-                    return EnumNodeType.UndryOperator;
-                default:
-                    return EnumNodeType.Unknown;
-            }
-        }
 
         private string AnalysisExpression(Expression exp)
         {
@@ -622,5 +624,7 @@ namespace LSolr
             }
             return TextSql;
         }
+
+
     }
 }

@@ -24,5 +24,10 @@ namespace LSolr
             return query;
         }
 
+        public static Updt<T> Updt<T>(string SolrHttp = "", string SolrUserid = "", string SolrPsw = "")
+        {
+            Updt<T> updt = new Updt<T>(SolrHttp, SolrUserid, SolrPsw);
+            return updt;
+        }
     }
 }

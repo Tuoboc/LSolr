@@ -65,7 +65,7 @@ namespace LSolr
                             if (!string.IsNullOrEmpty(field.SolrField))
                                 tempSelectString += field.SolrField + ",";
                             else
-                                tempSelectString += field.EntityType + ",";
+                                tempSelectString += field.EntityField + ",";
                         }
                     }
                 }

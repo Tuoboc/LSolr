@@ -151,6 +151,35 @@ FacetSolr<goods> facetSolr = Solr.Query<goods>().Where(a => a.price>10).GroupBy(
 Solr中group函数不能多字段分组，facet函数返回的结构为树形结构，所以为了接近SQL中的Group By，
 GroupBy方法使用的是facet,并且将树形结构转化为和SQL结果一样的Table结构。
 默认请求solr时facet.missing参数设为on，表示将null值也进行分组，也是为了保持和SQL一致。
+### 更新操作
+Lsolr支持单条数据的原子更新，因为更新时必须通过Solr中的主键进行更新，所以实体类中需要指定一个主键，实体类修改如下。
+```c#
+[SolrCore("goodscore")]
+public class goods
+{
+    [SolrField("recordno", IsKey = true)]
+    public string recordno { get; set; }
+    [SolrField("goodcode")]
+    public string goodcode { get; set; }
+    [SolrField("price")]
+    public double? price { get; set; }
+    public DateTime? createtime { get; set; }
+}
+```
+更新操作有两种方式，两种方式更新的内容不同。
+```C#
+goods g = new goods() {recordno="123456", price=10.5, goodcode=null  };
+Solr.Updt<goods>().Update(a => g).UpdateModel();//方法1
+Solr.Updt<goods>().Update(a => new goods() { recordno = "123456", price = 10.5, goodcode=null  }).UpdateModel();//方法2
+```
+方法1中要更新的goods是Update函数外实例化的，这种更新会更新goods对象中不为null的字段，goodcode字段为null，所以不会被更新。  
+方法2中要更新的goods是Update函数内实例化的，这种更新会更新实例化时赋值的所有对象，虽然goodcode为null，但是也会将solr中该字段更新为null。  
+注意：采用第一种方法更新时请确认字段是否是可空类型，避免将错误的数据更新到solr中。
+
+如果更新了大量数据，可以考虑增量更新所有数据
+```c#
+bool success = Solr.Updt<goods>().UpdateAllNewData();
+```
 ## 其他功能
 ### 查看代码执行的各阶段耗时
 ```c#

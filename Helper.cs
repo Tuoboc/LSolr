@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Runtime.Serialization.Json;
@@ -24,7 +25,7 @@ namespace LSolr
         /// <param name="RequestHead">请求头参数</param>
         /// <param name="method">请求方法</param>
         /// <returns>响应内容</returns>
-        public static string sendPost(string url, IDictionary<string, string> parameters, IDictionary<string, string> RequestHead, string method, int timeout = 5000, string WhereString = "")
+        public static string sendPost(string url, IDictionary<string, string> parameters, IDictionary<string, string> RequestHead, string method, int timeout = 5000, string PostData = "", string contentType = "application/x-www-form-urlencoded;charset=utf-8")
         {
             if (method.ToLower() == "post")
             {
@@ -34,14 +35,14 @@ namespace LSolr
                 try
                 {
                     if (!string.IsNullOrEmpty(setting.solroutlog) && setting.solroutlog.ToLower() == "true")
-                        WriteLogs("Solr查询记录：" + url + WhereString);
+                        WriteLogs("Solr查询记录：" + url + PostData);
                     req = (HttpWebRequest)WebRequest.Create(url);
                     req.Method = method;
                     req.KeepAlive = false;
                     req.ProtocolVersion = HttpVersion.Version10;
                     req.Timeout = timeout;
-                    req.ContentType = "application/x-www-form-urlencoded;charset=utf-8";
-                    string para = WhereString != "" ? WhereString + BuildQuery(parameters, "utf8") : BuildQuery(parameters, "utf8");
+                    req.ContentType = contentType;
+                    string para = PostData != "" ? PostData + BuildQuery(parameters, "utf8") : BuildQuery(parameters, "utf8");
                     byte[] postData = Encoding.UTF8.GetBytes(para);
                     foreach (var item in RequestHead)
                     {
@@ -55,7 +56,7 @@ namespace LSolr
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception("请求solr失败，请求url：" + url + WhereString + ex.Message);
+                    throw new Exception("请求solr失败，请求url：" + url + PostData + ex.Message);
                 }
                 finally
                 {
@@ -362,6 +363,14 @@ namespace LSolr
                 result.Add(map);
             }
             return result;
+        }
+
+        public static object GetPropertyValue(object info, string field)
+        {
+            if (info == null) return null;
+            Type t = info.GetType();
+            IEnumerable<PropertyInfo> property = from pi in t.GetProperties() where pi.Name.ToUpper() == field.ToUpper() select pi;
+            return property.First().GetValue(info, null);
         }
     }
 }
