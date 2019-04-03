@@ -255,7 +255,7 @@ namespace LSolr
         {
             var result = tolist();
             total = result.response.numFound;
-            return tolist().response.docs;
+            return result.response.docs;
         }
 
         /// <summary>
@@ -373,7 +373,7 @@ namespace LSolr
             result.response.numFound = Convert.ToInt32(doc.Element("response").Element("result").Attribute("numFound").Value);
             foreach (var dataitem in doc.Element("response").Element("result").Elements("doc"))
             {
-                fieldMaps.ForEach(a => a.Value = "");
+                fieldMaps.ForEach(a => a.Value = null);
                 foreach (var datanode in dataitem.Elements())
                 {
                     string DataType = datanode.Name.ToString();
@@ -389,7 +389,7 @@ namespace LSolr
                 foreach (var info in infos)
                 {
                     var field = fieldMaps.Find(a => a.SolrField == info.Name || a.EntityField == info.Name);
-                    if (field.Value != "")
+                    if (field.Value != null)
                     {
                         switch (field.EntityType)
                         {
@@ -397,22 +397,22 @@ namespace LSolr
                                 info.SetValue(o, field.Value);
                                 break;
                             case "Double":
-                                info.SetValue(o, Convert.ToDouble(field.Value));
+                                if (field.Value != "") info.SetValue(o, Convert.ToDouble(field.Value));
                                 break;
                             case "Float":
-                                info.SetValue(o, float.Parse(field.Value));
+                                if (field.Value != "") info.SetValue(o, float.Parse(field.Value));
                                 break;
                             case "Decimal":
-                                info.SetValue(o, Convert.ToDecimal(field.Value));
+                                if (field.Value != "") info.SetValue(o, Convert.ToDecimal(field.Value));
                                 break;
                             case "Int64":
-                                info.SetValue(o, Convert.ToInt64(field.Value));
+                                if (field.Value != "") info.SetValue(o, Convert.ToInt64(field.Value));
                                 break;
                             case "Int32":
-                                info.SetValue(o, Convert.ToInt32(field.Value));
+                                if (field.Value != "") info.SetValue(o, Convert.ToInt32(field.Value));
                                 break;
                             case "DateTime":
-                                info.SetValue(o, Convert.ToDateTime(field.Value));
+                                if (field.Value != "") info.SetValue(o, Convert.ToDateTime(field.Value));
                                 break;
                         }
                     }

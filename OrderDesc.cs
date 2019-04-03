@@ -69,13 +69,19 @@ namespace LSolr
                 if (field != null)
                 {
                     if (!string.IsNullOrEmpty(field.SolrField))
-                        return field.SolrField;
+                        tempOrderString += field.SolrField + " DESC,";
                     else
-                        return field.EntityField;
+                        tempOrderString += field.EntityField + " DESC,";
                 }
                 else
-                    return expN.Member.Name.ToString();
+                    return expN.Member.Name.ToString() + " DESC,";
             }
+            if (func.NodeType == ExpressionType.Convert)
+            {
+                var expN = func as UnaryExpression;
+                return GetSelectString(expN.Operand, map);
+            }
+
             return tempOrderString.Trim(',');
         }
     }
