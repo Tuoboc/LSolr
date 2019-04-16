@@ -34,8 +34,6 @@ namespace LSolr
                 System.IO.Stream reqStream = null;
                 try
                 {
-                    if (!string.IsNullOrEmpty(setting.solroutlog) && setting.solroutlog.ToLower() == "true")
-                        WriteLogs("Solr查询记录：" + url + PostData);
                     req = (HttpWebRequest)WebRequest.Create(url);
                     req.Method = method;
                     req.KeepAlive = false;

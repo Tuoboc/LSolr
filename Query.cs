@@ -422,7 +422,8 @@ namespace LSolr
             }
             DateTime end = DateTime.Now;
             TimeLineMsg += "转换成对象执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
-
+            if (!string.IsNullOrEmpty(Helper.setting.solroutlog) && Helper.setting.solroutlog.ToLower() == "true")
+                Helper.WriteLogs("请求地址：" + OutpuntRequestUrl() + " 消耗时间：" + TimeLineMsg);
             return result;
         }
 
@@ -454,6 +455,8 @@ namespace LSolr
 
             DateTime end = DateTime.Now;
             TimeLineMsg += "转换成对象执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
+            if (!string.IsNullOrEmpty(Helper.setting.solroutlog) && Helper.setting.solroutlog.ToLower() == "true")
+                Helper.WriteLogs("请求地址：" + OutpuntRequestUrl() + " 消耗时间：" + TimeLineMsg);
             return result;
         }
 
