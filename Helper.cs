@@ -340,13 +340,16 @@ namespace LSolr
             foreach (PropertyInfo item in propertyInfos)
             {
                 FieldMap map = new FieldMap();
-                var attr = item.GetCustomAttributes(typeof(SolrFieldAttribute), false);
-                if (attr.Length > 0)
+                IList<CustomAttributeData> attributes = CustomAttributeData.GetCustomAttributes(item);
+
+                foreach (CustomAttributeData data in attributes)
                 {
-                    var field = attr[0] as SolrFieldAttribute;
-                    if (!string.IsNullOrEmpty(field.SolrField))
-                        map.SolrField = field.SolrField;
-                    map.IsKey = field.IsKey;
+                    if (data.AttributeType == typeof(SolrFieldAttribute))
+                    {
+                        map.SolrField = data.ConstructorArguments[0].Value.ToString();
+                        map.IsKey = Convert.ToBoolean(data.ConstructorArguments[1].Value);
+                    }
+
                 }
                 map.EntityField = item.Name;
                 if (item.PropertyType.IsGenericType && item.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
