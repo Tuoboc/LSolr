@@ -22,6 +22,9 @@ namespace LSolr
         {
             return true;
         }
-
+        public static bool SolrInLike(this object obj, string str, string match = "all")
+        {
+            return true;
+        }
     }
 }
