@@ -374,14 +374,30 @@ namespace LSolr
             foreach (var dataitem in doc.Element("response").Element("result").Elements("doc"))
             {
                 fieldMaps.ForEach(a => a.Value = null);
+                fieldMaps.ForEach(a => a.ValueList = null);
                 foreach (var datanode in dataitem.Elements())
                 {
                     string DataType = datanode.Name.ToString();
                     string DataField = datanode.Attribute("name").Value;
-                    string DataValue = datanode.Value;
-                    var field = fieldMaps.Find(a => a.SolrField == DataField || a.EntityField == DataField);
-                    if (field != null)
-                        field.Value = DataValue;
+                    if (DataType == "arr")
+                    {
+                        var ListArr = datanode.Elements();
+                        List<string> ListValue = new List<string>();
+                        foreach (var arrvalue in ListArr)
+                        {
+                            ListValue.Add(arrvalue.Value);
+                        }
+                        var field = fieldMaps.Find(a => a.SolrField == DataField || a.EntityField == DataField);
+                        if (field != null)
+                            field.ValueList = ListValue;
+                    }
+                    else
+                    {
+                        string DataValue = datanode.Value;
+                        var field = fieldMaps.Find(a => a.SolrField == DataField || a.EntityField == DataField);
+                        if (field != null)
+                            field.Value = DataValue;
+                    }
                 }
                 Type type = typeof(T);
                 object o = Activator.CreateInstance(type);
@@ -389,33 +405,66 @@ namespace LSolr
                 foreach (var info in infos)
                 {
                     var field = fieldMaps.Find(a => a.SolrField == info.Name || a.EntityField == info.Name);
-                    if (field.Value != null)
+                    if (field.IsList == false)
                     {
+                        if (field.Value != null)
+                        {
+                            switch (field.EntityType)
+                            {
+                                case "String":
+                                    info.SetValue(o, field.Value);
+                                    break;
+                                case "Double":
+                                    if (field.Value != "") info.SetValue(o, Convert.ToDouble(field.Value));
+                                    break;
+                                case "Float":
+                                    if (field.Value != "") info.SetValue(o, float.Parse(field.Value));
+                                    break;
+                                case "Decimal":
+                                    if (field.Value != "") info.SetValue(o, Convert.ToDecimal(field.Value));
+                                    break;
+                                case "Int64":
+                                    if (field.Value != "") info.SetValue(o, Convert.ToInt64(field.Value));
+                                    break;
+                                case "Int32":
+                                    if (field.Value != "") info.SetValue(o, Convert.ToInt32(field.Value));
+                                    break;
+                                case "DateTime":
+                                    if (field.Value != "") info.SetValue(o, Convert.ToDateTime(field.Value));
+                                    break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (field.ValueList == null)
+                            field.ValueList = new List<string>();
                         switch (field.EntityType)
                         {
                             case "String":
-                                info.SetValue(o, field.Value);
+                                info.SetValue(o, field.ValueList);
                                 break;
                             case "Double":
-                                if (field.Value != "") info.SetValue(o, Convert.ToDouble(field.Value));
+                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, Double>(q => Convert.ToDouble(q)));
                                 break;
                             case "Float":
-                                if (field.Value != "") info.SetValue(o, float.Parse(field.Value));
+                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, float>(q => float.Parse(q)));
                                 break;
                             case "Decimal":
-                                if (field.Value != "") info.SetValue(o, Convert.ToDecimal(field.Value));
+                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, Decimal>(q => Convert.ToDecimal(q)));
                                 break;
                             case "Int64":
-                                if (field.Value != "") info.SetValue(o, Convert.ToInt64(field.Value));
+                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, Int64>(q => Convert.ToInt64(q)));
                                 break;
                             case "Int32":
-                                if (field.Value != "") info.SetValue(o, Convert.ToInt32(field.Value));
+                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, Int32>(q => Convert.ToInt32(q)));
                                 break;
                             case "DateTime":
-                                if (field.Value != "") info.SetValue(o, Convert.ToDateTime(field.Value));
+                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, DateTime>(q => Convert.ToDateTime(q)));
                                 break;
                         }
                     }
+
                 }
                 result.response.docs.Add((T)o);
 

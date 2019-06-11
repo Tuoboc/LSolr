@@ -356,10 +356,17 @@ namespace LSolr
                 {
                     // If it is NULLABLE, then get the underlying type. eg if "Nullable<int>" then this will return just "int"
                     map.EntityType = item.PropertyType.GetGenericArguments()[0].Name;
+                    map.IsList = false;
+                }
+                else if (item.PropertyType.IsGenericType && item.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
+                {
+                    map.EntityType = item.PropertyType.GetGenericArguments()[0].Name;
+                    map.IsList = true;
                 }
                 else
                 {
                     map.EntityType = item.PropertyType.Name;
+                    map.IsList = false;
                 }
                 result.Add(map);
             }

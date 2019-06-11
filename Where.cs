@@ -390,6 +390,8 @@ namespace LSolr
                     return CreateNotInMethodWhereString(func);
                 case "SolrInLike":
                     return CreateInLikeMethodWhereString(func);
+                case "Contains":
+                    return CreateContainsMethodWhereString(func);
             }
             return "";
         }
@@ -423,6 +425,15 @@ namespace LSolr
             else
                 return caller + ":*" + value + "*";
         }
+
+        private string CreateContainsMethodWhereString(MethodCallExpression func)
+        {
+            var caller = VisitMemberExpression(func.Object as MemberExpression);
+            var value = VisitConstantExpression(func.Arguments[0] as ConstantExpression);
+            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
+            return caller + ":" + value + "";
+        }
+
         private string CreateNotLikeMethodWhereString(MethodCallExpression func)
         {
             var caller = VisitMemberExpression(func.Arguments[0] as MemberExpression);
