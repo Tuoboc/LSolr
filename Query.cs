@@ -548,34 +548,69 @@ namespace LSolr
             if (!string.IsNullOrEmpty(value))
             {
                 var infos = type.GetProperties();
-                var field = fieldMaps.Find(a => a.SolrField == fieldname || a.EntityField == fieldname);
-                foreach (var info in infos.Where(a => a.Name == field.EntityField).ToList())
+                var field = fieldMaps.Find(a => a.SolrField == fieldname);
+                if (field != null)
                 {
-                    switch (field.EntityType)
+                    foreach (var info in infos)
                     {
-                        case "String":
-                            info.SetValue(o, value);
-                            break;
-                        case "Double":
-                            info.SetValue(o, Convert.ToDouble(value));
-                            break;
-                        case "Float":
-                            info.SetValue(o, float.Parse(value));
-                            break;
-                        case "Decimal":
-                            info.SetValue(o, Convert.ToDecimal(value));
-                            break;
-                        case "Int64":
-                            info.SetValue(o, Convert.ToInt64(value));
-                            break;
-                        case "Int32":
-                            info.SetValue(o, Convert.ToInt32(value));
-                            break;
-                        case "DateTime":
-                            info.SetValue(o, Convert.ToDateTime(value));
-                            break;
-                    }
+                        if (info.Name != field.EntityField)
+                            continue;
+                        if (field.IsList == false)
+                        {
+                            switch (field.EntityType)
+                            {
+                                case "String":
+                                    info.SetValue(o, value);
+                                    break;
+                                case "Double":
+                                    if (value != "") info.SetValue(o, Convert.ToDouble(value));
+                                    break;
+                                case "Float":
+                                    if (value != "") info.SetValue(o, float.Parse(value));
+                                    break;
+                                case "Decimal":
+                                    if (value != "") info.SetValue(o, Convert.ToDecimal(value));
+                                    break;
+                                case "Int64":
+                                    if (value != "") info.SetValue(o, Convert.ToInt64(value));
+                                    break;
+                                case "Int32":
+                                    if (value != "") info.SetValue(o, Convert.ToInt32(value));
+                                    break;
+                                case "DateTime":
+                                    if (value != "") info.SetValue(o, Convert.ToDateTime(value));
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            switch (field.EntityType)
+                            {
+                                case "String":
+                                    info.SetValue(o, new List<string>() { value });
+                                    break;
+                                case "Double":
+                                    if (value != "") info.SetValue(o, new List<double>() { Convert.ToDouble(value) });
+                                    break;
+                                case "Float":
+                                    if (value != "") info.SetValue(o, new List<float>() { float.Parse(value) });
+                                    break;
+                                case "Decimal":
+                                    if (value != "") info.SetValue(o, new List<decimal>() { Convert.ToDecimal(value) });
+                                    break;
+                                case "Int64":
+                                    if (value != "") info.SetValue(o, new List<Int64>() { Convert.ToInt64(value) });
+                                    break;
+                                case "Int32":
+                                    if (value != "") info.SetValue(o, new List<Int32>() { Convert.ToInt32(value) });
+                                    break;
+                                case "DateTime":
+                                    if (value != "") info.SetValue(o, new List<DateTime>() { Convert.ToDateTime(value) });
+                                    break;
+                            }
+                        }
 
+                    }
                 }
             }
             return (T)o;
