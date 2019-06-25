@@ -445,22 +445,22 @@ namespace LSolr
                                 info.SetValue(o, field.ValueList);
                                 break;
                             case "Double":
-                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, Double>(q => Convert.ToDouble(q)));
+                                if (field.Value != "") info.SetValue(o, new List<double>(field.ValueList.Select(x => Convert.ToDouble(x))));
                                 break;
                             case "Float":
-                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, float>(q => float.Parse(q)));
+                                if (field.Value != "") info.SetValue(o, new List<float>(field.ValueList.Select(x => float.Parse(x))));
                                 break;
                             case "Decimal":
-                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, Decimal>(q => Convert.ToDecimal(q)));
+                                if (field.Value != "") info.SetValue(o, new List<decimal>(field.ValueList.Select(x => Convert.ToDecimal(x))));
                                 break;
                             case "Int64":
-                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, Int64>(q => Convert.ToInt64(q)));
+                                if (field.Value != "") info.SetValue(o, new List<Int64>(field.ValueList.Select(x => Convert.ToInt64(x))));
                                 break;
                             case "Int32":
-                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, Int32>(q => Convert.ToInt32(q)));
+                                if (field.Value != "") info.SetValue(o, new List<Int32>(field.ValueList.Select(x => Convert.ToInt32(x))));
                                 break;
                             case "DateTime":
-                                if (field.Value != "") info.SetValue(o, field.ValueList.Select<string, DateTime>(q => Convert.ToDateTime(q)));
+                                if (field.Value != "") info.SetValue(o, new List<DateTime>(field.ValueList.Select(x => Convert.ToDateTime(x))));
                                 break;
                         }
                     }
