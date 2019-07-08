@@ -429,7 +429,23 @@ namespace LSolr
         private string CreateContainsMethodWhereString(MethodCallExpression func)
         {
             var caller = VisitMemberExpression(func.Object as MemberExpression);
-            var value = VisitConstantExpression(func.Arguments[0] as ConstantExpression);
+            var rightType = ExpressionEnum.CheckExpressionType(func.Arguments[0]);
+            var value = "";
+            switch (rightType)
+            {
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
+                    value = VisitBinaryExpression(func.Arguments[0] as BinaryExpression);
+                    break;
+                case ExpressionEnum.EnumNodeType.Constant:
+                    value = VisitConstantExpression(func.Arguments[0] as ConstantExpression);
+                    break;
+                case ExpressionEnum.EnumNodeType.UndryOperator:
+                    value = VisitUnaryExpression(func.Arguments[0] as UnaryExpression);
+                    break;
+                case ExpressionEnum.EnumNodeType.MemberAccess:
+                    value = VisitValueMemberExpression(func.Arguments[0] as MemberExpression);
+                    break;
+            }
             value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
             return caller + ":" + value + "";
         }
