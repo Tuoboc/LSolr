@@ -202,6 +202,10 @@ namespace LSolr
             {
                 Type = func.Type.GetGenericArguments()[0].Name;
             }
+            else if (func.Type.IsGenericType && func.Type.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                Type = func.Type.GetGenericArguments()[0].Name;
+            }
             else
                 Type = func.Type.Name;
             return VisitMemberExpression(func);
