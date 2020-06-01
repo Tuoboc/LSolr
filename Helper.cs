@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.Serialization.Json;
 using System.Text;
@@ -16,7 +17,15 @@ namespace LSolr
     public static class Helper
     {
         public static Setting setting = ReadConfig();
+        private static string EnvironmentName { get; set; }
 
+        private static HttpClient _httpClient;
+
+        public static void SetEnvironmentName(string Name)
+        {
+            EnvironmentName = Name;
+            setting = ReadConfig();
+        }
         /// <summary>
         /// Http (GET/POST)
         /// </summary>
@@ -25,62 +34,61 @@ namespace LSolr
         /// <param name="RequestHead">请求头参数</param>
         /// <param name="method">请求方法</param>
         /// <returns>响应内容</returns>
-        public static string sendPost(string url, IDictionary<string, string> parameters, IDictionary<string, string> RequestHead, string method, int timeout = 5000, string PostData = "", string contentType = "application/x-www-form-urlencoded;charset=utf-8")
+        public static string sendPost(string url, IDictionary<string, string> parameters, IDictionary<string, string> RequestHead, string method, int timeout = 50000, string PostData = "", string contentType = "application/x-www-form-urlencoded")
         {
-            if (method.ToLower() == "post")
-            {
-                HttpWebRequest req = null;
-                HttpWebResponse rsp = null;
-                System.IO.Stream reqStream = null;
-                try
-                {
-                    req = (HttpWebRequest)WebRequest.Create(url);
-                    req.Method = method;
-                    req.KeepAlive = false;
-                    req.ProtocolVersion = HttpVersion.Version10;
-                    req.Timeout = timeout;
-                    req.ContentType = contentType;
-                    string para = PostData != "" ? PostData + BuildQuery(parameters, "utf8") : BuildQuery(parameters, "utf8");
-                    byte[] postData = Encoding.UTF8.GetBytes(para);
-                    foreach (var item in RequestHead)
-                    {
-                        req.Headers.Add(item.Key, item.Value);
-                    }
-                    reqStream = req.GetRequestStream();
-                    reqStream.Write(postData, 0, postData.Length);
-                    rsp = (HttpWebResponse)req.GetResponse();
-                    Encoding encoding = Encoding.GetEncoding(rsp.CharacterSet);
-                    return GetResponseAsString(rsp, encoding);
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception("请求solr失败，请求url：" + url + PostData + ex.Message);
-                }
-                finally
-                {
-                    if (reqStream != null) reqStream.Close();
-                    if (rsp != null) rsp.Close();
-                }
-            }
-            else
-            {
-                //创建请求
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-                foreach (var item in RequestHead)
-                {
-                    request.Headers.Add(item.Key, item.Value);
-                }
-                //GET请求
-                request.Method = "GET";
-                request.ReadWriteTimeout = timeout;
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                Stream myResponseStream = response.GetResponseStream();
-                StreamReader myStreamReader = new StreamReader(myResponseStream, Encoding.GetEncoding("utf-8"));
 
-                //返回内容
-                string retString = myStreamReader.ReadToEnd();
-                return retString;
+            string result = "";
+            try
+            {
+                if (_httpClient == null)
+                {
+                    _httpClient = new HttpClient();
+                    _httpClient.Timeout = new TimeSpan(0, 0, 0, 0, timeout);
+                }
+                if (method.ToLower() == "post")
+                {
+
+                    HttpContent httpContent = new StringContent(PostData);
+                    httpContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+
+                    var request = new HttpRequestMessage()
+                    {
+                        RequestUri = new Uri(url),
+                        Method = HttpMethod.Post,
+                        Content = httpContent
+                    };
+                    if (RequestHead != null)
+                    {
+                        foreach (var item in RequestHead)
+                        {
+                            request.Headers.Add(item.Key, item.Value);
+                        }
+                    }
+                    var responseMessage = _httpClient.SendAsync(request).Result;
+
+                    if (responseMessage.IsSuccessStatusCode)
+                    {
+                        Task<string> t = responseMessage.Content.ReadAsStringAsync();
+                        string reString = t.Result;
+                        if (!string.IsNullOrWhiteSpace(reString))
+                        {
+                            result = reString;
+                        }
+                    }
+                }
+                else
+                {
+                    var responseMessage = _httpClient.GetStringAsync(new Uri(url));
+                    string reString = responseMessage.Result;
+                    result = reString;
+                }
+
             }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return result;
         }
 
         public static async Task<string> sendPostAsync(string url, IDictionary<string, string> parameters, IDictionary<string, string> RequestHead, string method, int timeout = 5000)
@@ -140,31 +148,6 @@ namespace LSolr
         }
 
 
-        /// <summary>
-        /// 把响应流转换为文本。
-        /// </summary>
-        /// <param name="rsp">响应流对象</param>
-        /// <param name="encoding">编码方式</param>
-        /// <returns>响应文本</returns>
-        private static string GetResponseAsString(HttpWebResponse rsp, Encoding encoding)
-        {
-            System.IO.Stream stream = null;
-            StreamReader reader = null;
-            try
-            {
-                // 以字符流的方式读取HTTP响应
-                stream = rsp.GetResponseStream();
-                reader = new StreamReader(stream, encoding);
-                return reader.ReadToEnd();
-            }
-            finally
-            {
-                // 释放资源
-                if (reader != null) reader.Close();
-                if (stream != null) stream.Close();
-                if (rsp != null) rsp.Close();
-            }
-        }
         private static string GetResponseAsString(WebResponse rsp)
         {
             System.IO.Stream stream = null;
@@ -236,6 +219,27 @@ namespace LSolr
             foreach (var item in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory))
             {
                 var filename = item.Split('/', '\\');
+                if (filename[filename.Length - 1].ToLower() == "appsettings.json" && EnvironmentName != "Development")
+                {
+                    using (var ms = new MemoryStream(Encoding.Unicode.GetBytes(File.ReadAllText(item))))
+                    {
+                        DataContractJsonSerializer deseralizer = new DataContractJsonSerializer(typeof(Setting));
+                        model = (Setting)deseralizer.ReadObject(ms);// //反序列化ReadObject
+                    }
+                    return model;
+                }
+                if (filename[filename.Length - 1].ToLower() == "appsettings.development.json" && EnvironmentName == "Development")
+                {
+                    using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(File.ReadAllText(item))))
+                    {
+                        byte[] b = ms.ToArray();
+                        string s = System.Text.Encoding.UTF8.GetString(b, 0, b.Length);
+
+                        DataContractJsonSerializer deseralizer = new DataContractJsonSerializer(typeof(Setting));
+                        model = (Setting)deseralizer.ReadObject(ms);// //反序列化ReadObject
+                    }
+                    return model;
+                }
                 if (filename[filename.Length - 1].ToLower() == "web.config")
                 {
                     XDocument doc = XDocument.Load(item);
@@ -289,15 +293,7 @@ namespace LSolr
                     }
                     return model;
                 }
-                if (filename[filename.Length - 1].ToLower() == "appsettings.json")
-                {
-                    using (var ms = new MemoryStream(Encoding.Unicode.GetBytes(File.ReadAllText(item))))
-                    {
-                        DataContractJsonSerializer deseralizer = new DataContractJsonSerializer(typeof(Setting));
-                        model = (Setting)deseralizer.ReadObject(ms);// //反序列化ReadObject
-                    }
-                    return model;
-                }
+               
             }
             return model;
         }

@@ -12,7 +12,6 @@ namespace LSolr.Model
 
         public string Value { get; set; }
         public bool IsKey { get; set; }
-
         public List<string> ValueList { get; set; }
         public bool IsList { get; set; }
     }

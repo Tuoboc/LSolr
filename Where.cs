@@ -250,7 +250,10 @@ namespace LSolr
                         {
                             var getter = Expression.Lambda<Func<DateTime?>>(func).Compile();
                             value = getter();
-                            return Convert.ToDateTime(value).ToString("yyyy-MM-ddTHH:mm:ssZ");
+                            DateTime time = (DateTime)value;
+                            if (!string.IsNullOrEmpty(Helper.setting.solrtimezone) && Helper.setting.solrtimezone.ToLower() == "true")
+                                time = time.AddHours(-8);
+                            return time.ToString("yyyy-MM-ddTHH:mm:ssZ");
                         }
                     case "Decimal":
                         {
@@ -298,7 +301,10 @@ namespace LSolr
                         {
                             var getter = Expression.Lambda<Func<DateTime>>(func).Compile();
                             value = getter();
-                            return Convert.ToDateTime(value).ToString("yyyy-MM-ddTHH:mm:ssZ");
+                            DateTime time = (DateTime)value;
+                            if (!string.IsNullOrEmpty(Helper.setting.solrtimezone) && Helper.setting.solrtimezone.ToLower() == "true")
+                                time = time.AddHours(-8);
+                            return time.ToString("yyyy-MM-ddTHH:mm:ssZ");
                         }
                     case "Decimal":
                         {
@@ -336,7 +342,7 @@ namespace LSolr
                 if (vaule.ToString() == "")
                     v_str = "\"\"";
                 else
-                    v_str = string.Format("{0}", vaule.ToString().Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ "));
+                    v_str = string.Format("{0}", vaule.ToString().SolrReplace());
             }
             else if (vaule is DateTime)
             {
@@ -420,7 +426,7 @@ namespace LSolr
                     value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
                     break;
             }
-            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
+            value = value.SolrReplace();
             var match = VisitConstantExpression(func.Arguments[2] as ConstantExpression);
             if (match.ToLower() == "left")
                 return caller + ":*" + value;
@@ -450,7 +456,7 @@ namespace LSolr
                     value = VisitValueMemberExpression(func.Arguments[0] as MemberExpression);
                     break;
             }
-            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
+            value = value.SolrReplace();
             return caller + ":" + value + "";
         }
 
@@ -474,7 +480,7 @@ namespace LSolr
                     value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
                     break;
             }
-            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
+            value = value.SolrReplace();
             var match = VisitConstantExpression(func.Arguments[2] as ConstantExpression);
             if (match.ToLower() == "left")
                 return "!" + caller + ":*" + value;
@@ -515,13 +521,66 @@ namespace LSolr
                     value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
                     break;
             }
-            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
+            value = value.SolrReplace();
             string InString = "";
             if (MemberType == "String")
             {
                 foreach (var item in value.Split(','))
                 {
                     InString += "\"" + item + "\",";
+                }
+            }
+            else
+            {
+                foreach (var item in value.Split(','))
+                {
+                    InString += item + " ";
+                }
+            }
+            if (InString != "")
+                return caller + ":(" + InString.Trim(',') + ")";
+            else
+                return "";
+        }
+
+        private string CreateInLikeMethodWhereString(MethodCallExpression func)
+        {
+            var leftType = ExpressionEnum.CheckExpressionType(func.Arguments[0]);
+            string caller = "";
+            string MemberType = "";
+            switch (leftType)
+            {
+                case ExpressionEnum.EnumNodeType.MemberAccess:
+                    caller = VisitMemberExpression(func.Arguments[0] as MemberExpression, ref MemberType); break;
+                case ExpressionEnum.EnumNodeType.Call:
+                    caller = VisitMethodCallExpression(func.Arguments[0] as MethodCallExpression); break;
+                case ExpressionEnum.EnumNodeType.UndryOperator:
+                    caller = VisitUnaryExpression(func.Arguments[0] as UnaryExpression, ref MemberType); break;
+            }
+            var rightType = ExpressionEnum.CheckExpressionType(func.Arguments[1]);
+            var value = "";
+            switch (rightType)
+            {
+                case ExpressionEnum.EnumNodeType.BinaryOperator:
+                    value = VisitBinaryExpression(func.Arguments[1] as BinaryExpression);
+                    break;
+                case ExpressionEnum.EnumNodeType.Constant:
+                    value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
+                    break;
+                case ExpressionEnum.EnumNodeType.UndryOperator:
+                    value = VisitUnaryExpression(func.Arguments[1] as UnaryExpression);
+                    break;
+                case ExpressionEnum.EnumNodeType.MemberAccess:
+                    value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
+                    break;
+            }
+            value = value.SolrReplace();
+            string InString = "";
+            if (MemberType == "String")
+            {
+                foreach (var item in value.Split(','))
+                {
+                    InString += "*" + item + "* ";
                 }
             }
             else
@@ -568,7 +627,7 @@ namespace LSolr
                     value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
                     break;
             }
-            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
+            value = value.SolrReplace();
             string InString = "";
             if (MemberType == "String")
             {
@@ -590,58 +649,7 @@ namespace LSolr
                 return "";
         }
 
-        private string CreateInLikeMethodWhereString(MethodCallExpression func)
-        {
-            var leftType = ExpressionEnum.CheckExpressionType(func.Arguments[0]);
-            string caller = "";
-            string MemberType = "";
-            switch (leftType)
-            {
-                case ExpressionEnum.EnumNodeType.MemberAccess:
-                    caller = VisitMemberExpression(func.Arguments[0] as MemberExpression, ref MemberType); break;
-                case ExpressionEnum.EnumNodeType.Call:
-                    caller = VisitMethodCallExpression(func.Arguments[0] as MethodCallExpression); break;
-                case ExpressionEnum.EnumNodeType.UndryOperator:
-                    caller = VisitUnaryExpression(func.Arguments[0] as UnaryExpression, ref MemberType); break;
-            }
-            var rightType = ExpressionEnum.CheckExpressionType(func.Arguments[1]);
-            var value = "";
-            switch (rightType)
-            {
-                case ExpressionEnum.EnumNodeType.BinaryOperator:
-                    value = VisitBinaryExpression(func.Arguments[1] as BinaryExpression);
-                    break;
-                case ExpressionEnum.EnumNodeType.Constant:
-                    value = VisitConstantExpression(func.Arguments[1] as ConstantExpression);
-                    break;
-                case ExpressionEnum.EnumNodeType.UndryOperator:
-                    value = VisitUnaryExpression(func.Arguments[1] as UnaryExpression);
-                    break;
-                case ExpressionEnum.EnumNodeType.MemberAccess:
-                    value = VisitValueMemberExpression(func.Arguments[1] as MemberExpression);
-                    break;
-            }
-            value = value.Replace("(", "\\(").Replace(")", "\\)").Replace(" ", "\\ ").Replace("\"", "");
-            string InString = "";
-            if (MemberType == "String")
-            {
-                foreach (var item in value.Split(','))
-                {
-                    InString += "*" + item + "* ";
-                }
-            }
-            else
-            {
-                foreach (var item in value.Split(','))
-                {
-                    InString += item + " ";
-                }
-            }
-            if (InString != "")
-                return caller + ":(" + InString.Trim(',') + ")";
-            else
-                return "";
-        }
+
 
         private string AnalysisExpression(Expression exp)
         {

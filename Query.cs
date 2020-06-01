@@ -305,7 +305,7 @@ namespace LSolr
             //where参数不拼接到url，而在psot请求时放到post data里
             string queryUrl = "/select?indent=on&q=*:*&wt=xml" + "&start=" + DataStart + "&rows=" + DataRows + SelectStr + OrderStr + UserPara;
             string html = CreateSolrHttp(queryUrl);
-            return HtmlToDocSolrModel(html);
+            return HtmlToDocSolrModel(html, queryUrl + WhereStr);
         }
 
         /// <summary>
@@ -328,9 +328,8 @@ namespace LSolr
             }
             string queryUrl = url + CoreName + paras;
 
-
             DateTime start = DateTime.Now;
-            string html = Helper.sendPost(queryUrl, null, HeadPara, "post", 5000, WhereStr);
+            string html = Helper.sendPost(queryUrl, null, HeadPara, "post", 50000,WhereStr);
             DateTime end = DateTime.Now;
             TimeLineMsg += "网络请求执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
             return html;
@@ -360,119 +359,127 @@ namespace LSolr
             return HtmlToDocSolrModel(html);
         }
 
-        private DocSolr<T> HtmlToDocSolrModel(string html)
+        private DocSolr<T> HtmlToDocSolrModel(string html, string queryurl = "")
         {
-            DateTime start = DateTime.Now;
             DocSolr<T> result = new DocSolr<T>();
-            result.responseHeader = new ResponseHeader();
-            result.response = new DocResponse<T>();
-            result.response.docs = new List<T>();
-
-            XDocument doc = XDocument.Parse(html);
-            //数据总数 
-            result.response.numFound = Convert.ToInt32(doc.Element("response").Element("result").Attribute("numFound").Value);
-            foreach (var dataitem in doc.Element("response").Element("result").Elements("doc"))
+            try
             {
-                fieldMaps.ForEach(a => a.Value = null);
-                fieldMaps.ForEach(a => a.ValueList = null);
-                foreach (var datanode in dataitem.Elements())
+                DateTime start = DateTime.Now;
+                result.responseHeader = new ResponseHeader();
+                result.response = new DocResponse<T>();
+                result.response.docs = new List<T>();
+
+                XDocument doc = XDocument.Parse(html);
+                //数据总数 
+                result.response.numFound = Convert.ToInt32(doc.Element("response").Element("result").Attribute("numFound").Value);
+                foreach (var dataitem in doc.Element("response").Element("result").Elements("doc"))
                 {
-                    string DataType = datanode.Name.ToString();
-                    string DataField = datanode.Attribute("name").Value;
-                    if (DataType == "arr")
+                    fieldMaps.ForEach(a => a.Value = null);
+                    fieldMaps.ForEach(a => a.ValueList = null);
+                    foreach (var datanode in dataitem.Elements())
                     {
-                        var ListArr = datanode.Elements();
-                        List<string> ListValue = new List<string>();
-                        foreach (var arrvalue in ListArr)
+                        string DataType = datanode.Name.ToString();
+                        string DataField = datanode.Attribute("name").Value;
+                        if (DataType == "arr")
                         {
-                            ListValue.Add(arrvalue.Value);
+                            var ListArr = datanode.Elements();
+                            List<string> ListValue = new List<string>();
+                            foreach (var arrvalue in ListArr)
+                            {
+                                ListValue.Add(arrvalue.Value);
+                            }
+                            var field = fieldMaps.Find(a => a.SolrField == DataField || a.EntityField == DataField);
+                            if (field != null)
+                                field.ValueList = ListValue;
                         }
-                        var field = fieldMaps.Find(a => a.SolrField == DataField || a.EntityField == DataField);
-                        if (field != null)
-                            field.ValueList = ListValue;
-                    }
-                    else
-                    {
-                        string DataValue = datanode.Value;
-                        var field = fieldMaps.Find(a => a.SolrField == DataField || a.EntityField == DataField);
-                        if (field != null)
-                            field.Value = DataValue;
-                    }
-                }
-                Type type = typeof(T);
-                object o = Activator.CreateInstance(type);
-                var infos = type.GetProperties();
-                foreach (var info in infos)
-                {
-                    var field = fieldMaps.Find(a => a.SolrField == info.Name || a.EntityField == info.Name);
-                    if (field.IsList == false)
-                    {
-                        if (field.Value != null)
+                        else
                         {
+                            string DataValue = datanode.Value;
+                            var field = fieldMaps.Find(a => a.SolrField == DataField || a.EntityField == DataField);
+                            if (field != null)
+                                field.Value = DataValue;
+                        }
+                    }
+                    Type type = typeof(T);
+                    object o = Activator.CreateInstance(type);
+                    var infos = type.GetProperties();
+                    foreach (var info in infos)
+                    {
+                        var field = fieldMaps.Find(a => a.SolrField == info.Name || a.EntityField == info.Name);
+                        if (field.IsList == false)
+                        {
+                            if (field.Value != null)
+                            {
+                                switch (field.EntityType)
+                                {
+                                    case "String":
+                                        info.SetValue(o, field.Value);
+                                        break;
+                                    case "Double":
+                                        if (field.Value != "") info.SetValue(o, Convert.ToDouble(field.Value));
+                                        break;
+                                    case "Float":
+                                        if (field.Value != "") info.SetValue(o, float.Parse(field.Value));
+                                        break;
+                                    case "Decimal":
+                                        if (field.Value != "") info.SetValue(o, Convert.ToDecimal(field.Value));
+                                        break;
+                                    case "Int64":
+                                        if (field.Value != "") info.SetValue(o, Convert.ToInt64(field.Value));
+                                        break;
+                                    case "Int32":
+                                        if (field.Value != "") info.SetValue(o, Convert.ToInt32(field.Value));
+                                        break;
+                                    case "DateTime":
+                                        if (field.Value != "") info.SetValue(o, Convert.ToDateTime(field.Value));
+                                        break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (field.ValueList == null)
+                                field.ValueList = new List<string>();
                             switch (field.EntityType)
                             {
                                 case "String":
-                                    info.SetValue(o, field.Value);
+                                    info.SetValue(o, field.ValueList);
                                     break;
                                 case "Double":
-                                    if (field.Value != "") info.SetValue(o, Convert.ToDouble(field.Value));
+                                    if (field.Value != "") info.SetValue(o, new List<double>(field.ValueList.Select(x => Convert.ToDouble(x))));
                                     break;
                                 case "Float":
-                                    if (field.Value != "") info.SetValue(o, float.Parse(field.Value));
+                                    if (field.Value != "") info.SetValue(o, new List<float>(field.ValueList.Select(x => float.Parse(x))));
                                     break;
                                 case "Decimal":
-                                    if (field.Value != "") info.SetValue(o, Convert.ToDecimal(field.Value));
+                                    if (field.Value != "") info.SetValue(o, new List<decimal>(field.ValueList.Select(x => Convert.ToDecimal(x))));
                                     break;
                                 case "Int64":
-                                    if (field.Value != "") info.SetValue(o, Convert.ToInt64(field.Value));
+                                    if (field.Value != "") info.SetValue(o, new List<Int64>(field.ValueList.Select(x => Convert.ToInt64(x))));
                                     break;
                                 case "Int32":
-                                    if (field.Value != "") info.SetValue(o, Convert.ToInt32(field.Value));
+                                    if (field.Value != "") info.SetValue(o, new List<Int32>(field.ValueList.Select(x => Convert.ToInt32(x))));
                                     break;
                                 case "DateTime":
-                                    if (field.Value != "") info.SetValue(o, Convert.ToDateTime(field.Value));
+                                    if (field.Value != "") info.SetValue(o, new List<DateTime>(field.ValueList.Select(x => Convert.ToDateTime(x))));
                                     break;
                             }
                         }
+
                     }
-                    else
-                    {
-                        if (field.ValueList == null)
-                            field.ValueList = new List<string>();
-                        switch (field.EntityType)
-                        {
-                            case "String":
-                                info.SetValue(o, field.ValueList);
-                                break;
-                            case "Double":
-                                if (field.Value != "") info.SetValue(o, new List<double>(field.ValueList.Select(x => Convert.ToDouble(x))));
-                                break;
-                            case "Float":
-                                if (field.Value != "") info.SetValue(o, new List<float>(field.ValueList.Select(x => float.Parse(x))));
-                                break;
-                            case "Decimal":
-                                if (field.Value != "") info.SetValue(o, new List<decimal>(field.ValueList.Select(x => Convert.ToDecimal(x))));
-                                break;
-                            case "Int64":
-                                if (field.Value != "") info.SetValue(o, new List<Int64>(field.ValueList.Select(x => Convert.ToInt64(x))));
-                                break;
-                            case "Int32":
-                                if (field.Value != "") info.SetValue(o, new List<Int32>(field.ValueList.Select(x => Convert.ToInt32(x))));
-                                break;
-                            case "DateTime":
-                                if (field.Value != "") info.SetValue(o, new List<DateTime>(field.ValueList.Select(x => Convert.ToDateTime(x))));
-                                break;
-                        }
-                    }
+                    result.response.docs.Add((T)o);
 
                 }
-                result.response.docs.Add((T)o);
+                DateTime end = DateTime.Now;
+                TimeLineMsg += "转换成对象执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
+                if (!string.IsNullOrEmpty(Helper.setting.solroutlog) && Helper.setting.solroutlog.ToLower() == "true")
+                    Helper.WriteLogs("请求地址：" + OutpuntRequestUrl() + " 消耗时间：" + TimeLineMsg);
 
             }
-            DateTime end = DateTime.Now;
-            TimeLineMsg += "转换成对象执行时间" + Math.Round((end - start).TotalSeconds * 1000, 3) + "毫秒.";
-            if (!string.IsNullOrEmpty(Helper.setting.solroutlog) && Helper.setting.solroutlog.ToLower() == "true")
-                Helper.WriteLogs("请求地址：" + OutpuntRequestUrl() + " 消耗时间：" + TimeLineMsg);
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message + ex.StackTrace + "\r\n请求地址：" + queryurl + "\r\n错误html:" + html);
+            }
             return result;
         }
 
